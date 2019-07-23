@@ -1,0 +1,98 @@
+---
+title: "Dataset Creation"
+author: "Erin M. Buchanan"
+date: "7/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import .bib files 
+
+```{r}
+#install.packages("bib2df")
+library(bib2df)
+
+#import all bib files
+lexical_DB_ebsco = bib2df("lexical_DB_ebsco.bib")
+lexical_DB_PO = bib2df("lexical_DB_PO.bib")
+lexical_norms_ebsco = bib2df("lexical_norms_ebsco.bib")
+lexical_norms_PO = bib2df("lexical_norms_PO.bib")
+linguistic_DB_ebsco = bib2df("linguistic_DB_ebsco.bib")
+linguistic_DB_PO = bib2df("linguistic_DB_PO.bib")
+linguistic_norms_ebsco = bib2df("linguistic_norms_ebsco.bib")
+linguistic_norms_PO = bib2df("linguistic_norms_PO.bib")
+
+#fix the ones without ISBN
+lexical_DB_PO$ISBN = NA
+lexical_norms_ebsco$ISBN = NA
+lexical_norms_PO$ISBN = NA
+linguistic_DB_ebsco = NA
+
+#take out all the non plos ones from that search
+lexical_DB_PO = subset(lexical_DB_PO, 
+                       JOURNAL == "PLoS ONE")
+lexical_norms_PO = subset(lexical_norms_PO, 
+                       JOURNAL == "PLoS ONE")
+linguistic_DB_PO = subset(linguistic_DB_PO, 
+                       JOURNAL == "PLoS ONE")
+linguistic_norms_PO = subset(linguistic_norms_PO, 
+                       JOURNAL == "PLoS ONE")
+
+#bind together
+allbib = rbind(lexical_DB_ebsco, lexical_DB_PO,
+               lexical_norms_ebsco, lexical_norms_PO,
+               linguistic_DB_ebsco, linguistic_DB_PO,
+               linguistic_norms_ebsco, linguistic_norms_PO)
+
+#remove duplicates
+allbib = unique(allbib)
+
+#deal with year column
+allbib$YEAR = substr(allbib$YEAR, 0, 4)
+```
+
+## Import BRM csv files
+
+```{r}
+#import the files
+lexical_DB_BRM  = read.csv("lexical_DB_BRM.csv", stringsAsFactors = F)
+lexical_norms_BRM  = read.csv("lexical_norms_BRM.csv", stringsAsFactors = F)
+linguistic_DB_BRM = read.csv("linguistic_DB_BRM.csv", stringsAsFactors = F)
+linguistic_norms_BRM = read.csv("linguistic_norms_BRM.csv", stringsAsFactors = F)
+corpus_BRM = read.csv("corpus_BRM.csv", stringsAsFactors = F)
+norms_BRM = read.csv("norms_BRM.csv", stringsAsFactors = F)
+
+#merge together
+allBRM = rbind(lexical_DB_BRM, lexical_norms_BRM, 
+               linguistic_DB_BRM, linguistic_norms_BRM,
+               norms_BRM, corpus_BRM)
+
+#remove duplicates
+allBRM = unique(allBRM)
+```
+
+## Merge data
+
+```{r}
+colnames(allBRM) = c("TITLE", "JOURNAL", 
+                     "BOOKTITLE", "VOLUME", 
+                     "NUMBER", "DOI", "AUTHOR", 
+                     "YEAR", "URL", "CATEGORY")
+allBRM$CATEGORY = toupper(allBRM$CATEGORY)
+
+library(plyr)
+
+alldata = rbind.fill(allbib, allBRM)
+
+```
+
+
+## Get abstracts BRM
+
+```{r}
+##add the webscraping here sigh 
+```
+
