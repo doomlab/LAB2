@@ -74,7 +74,7 @@ allBRM = rbind(lexical_DB_BRM, lexical_norms_BRM,
 allBRM = unique(allBRM)
 ```
 
-## Merge data
+## Merge search data
 
 ```{r}
 colnames(allBRM) = c("TITLE", "JOURNAL", 
@@ -87,12 +87,32 @@ library(plyr)
 
 alldata = rbind.fill(allbib, allBRM)
 
+#remove duplicates
+duplicated(alldata$TITLE)
+alldata = alldata[!duplicated(alldata$TITLE) , ]
 ```
 
+## The yes data + merge with Mendeley 
+
+```{r}
+lab_data = read.csv("lab_table.csv", stringsAsFactors = F)
+
+View(lab_data)
+```
+
+# what do we need
+
+1) abstract
+1.1) title 
+1.2) keywords 
+2) yes/no 
+
+## Create yes/no
+
+####find missing data abstracts, keywords 
 
 ## Get abstracts BRM
 
 ```{r}
 ##add the webscraping here sigh 
 ```
-
