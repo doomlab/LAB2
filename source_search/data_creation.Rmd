@@ -135,20 +135,14 @@ combo_data$TITLE = tolower(combo_data$TITLE)
 combo_data$duplicate = !duplicated(combo_data$TITLE)
 
 combo_data = subset(combo_data, duplicate == T)
+
+library(dplyr)
+combo_data = combo_data %>% mutate_all(as.character)
+
+write.csv(as.data.frame(combo_data), "combined_data_unedited.csv", row.names = F)
 ```
 
-
-# what do we need
-
-predictors: 
-  - abstract
-  - title
-  - keywords
-  
-dependent:
-  - yes/no
-  
-## Create yes/no
+## Import the new one 
 
 ####find missing data abstracts, keywords 
 
