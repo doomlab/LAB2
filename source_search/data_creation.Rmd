@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Import .bib files 
+## Import .bib files from search data
 
 ```{r}
 #install.packages("bib2df")
@@ -54,7 +54,7 @@ allbib = unique(allbib)
 allbib$YEAR = substr(allbib$YEAR, 0, 4)
 ```
 
-## Import BRM csv files
+## Import BRM csv files from search data
 
 ```{r}
 #import the files
@@ -95,7 +95,7 @@ alldata$TITLE = gsub("  ", " ", alldata$TITLE)
 alldata = alldata[!duplicated(alldata$TITLE) , ]
 ```
 
-## The yes data + merge with Mendeley 
+## The lab_table yes data + merge with Mendeley yes data
 
 ```{r}
 lab_data = read.csv("lab_table.csv", stringsAsFactors = F, encoding = "UTF-8")
@@ -104,9 +104,39 @@ mendeley_data = bib2df("mendeley.bib")
 lab_data$ref_title = gsub("[^[:print:]]","", lab_data$ref_title)
 lab_data$ref_title = tolower(lab_data$ref_title)
 
-temp = !(mendeley_data$BIBTEXKEY %in% lab_data$bibtex)
+setdiff(mendeley_data$BIBTEXKEY, lab_data$bibtex)
+#language goldmine not in lab ok
+#toglia 2009 not in lab table
+#jorgenson one is just being weird because of character sets
 
+setdiff(lab_data$bibtex, mendeley_data$BIBTEXKEY)
+#yep just the weird character issue 
+
+#use the mendeley data it has the complete set with the abstracts
 ```
+
+## Create a table with both together
+
+```{r}
+##add codes
+alldata$code = "No"
+##add codes and take out extra columns
+mendeley_data_red = mendeley_data[ , names(alldata)]
+mendeley_data_red$code = "Yes"
+
+##remove all data ones that are in the mendeley data
+##as much as we can, will have to filter out the last set by hand
+
+##merge together
+combo_data = rbind(mendeley_data_red, alldata)
+
+##find duplicates
+combo_data$TITLE = tolower(combo_data$TITLE)
+combo_data$duplicate = !duplicated(combo_data$TITLE)
+
+combo_data = subset(combo_data, duplicate == T)
+```
+
 
 # what do we need
 
