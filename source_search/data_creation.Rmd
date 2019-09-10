@@ -87,8 +87,11 @@ library(plyr)
 
 alldata = rbind.fill(allbib, allBRM)
 
+alldata$TITLE = tolower(alldata$TITLE)
+alldata$TITLE = gsub("  ", " ", alldata$TITLE)
+
 #remove duplicates
-duplicated(alldata$TITLE)
+#duplicated(alldata$TITLE)
 alldata = alldata[!duplicated(alldata$TITLE) , ]
 ```
 
@@ -96,17 +99,24 @@ alldata = alldata[!duplicated(alldata$TITLE) , ]
 
 ```{r}
 lab_data = read.csv("lab_table.csv", stringsAsFactors = F)
+mendeley_data = bib2df("mendeley.bib")
 
-View(lab_data)
+lab_data$ref_title = tolower(lab_data$ref_title)
+
+
+temp = !(mendeley_data$BIBTEXKEY %in% lab_data$bibtex)
 ```
 
 # what do we need
 
-1) abstract
-1.1) title 
-1.2) keywords 
-2) yes/no 
-
+predictors: 
+  - abstract
+  - title
+  - keywords
+  
+dependent:
+  - yes/no
+  
 ## Create yes/no
 
 ####find missing data abstracts, keywords 
