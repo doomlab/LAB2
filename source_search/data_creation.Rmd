@@ -98,13 +98,14 @@ alldata = alldata[!duplicated(alldata$TITLE) , ]
 ## The yes data + merge with Mendeley 
 
 ```{r}
-lab_data = read.csv("lab_table.csv", stringsAsFactors = F)
+lab_data = read.csv("lab_table.csv", stringsAsFactors = F, encoding = "UTF-8")
 mendeley_data = bib2df("mendeley.bib")
 
+lab_data$ref_title = gsub("[^[:print:]]","", lab_data$ref_title)
 lab_data$ref_title = tolower(lab_data$ref_title)
 
-
 temp = !(mendeley_data$BIBTEXKEY %in% lab_data$bibtex)
+
 ```
 
 # what do we need
