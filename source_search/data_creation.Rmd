@@ -144,6 +144,13 @@ write.csv(as.data.frame(combo_data), "combined_data_unedited.csv", row.names = F
 
 ## Import the new one 
 
+```{r}
+library(readxl)
+edited_data <- read_xlsx("combined_data_edited.xlsx")
+
+```
+
+
 ####find missing data abstracts, keywords 
 
 ## Get abstracts BRM
