@@ -118,11 +118,12 @@ setdiff(lab_data$bibtex, mendeley_data$BIBTEXKEY)
 ## Create a table with both together
 
 ```{r}
-##add codes
-alldata$code = "No"
 ##add codes and take out extra columns
 mendeley_data_red = mendeley_data[ , names(alldata)]
+##add codes
+alldata$code = "No"
 mendeley_data_red$code = "Yes"
+
 
 ##remove all data ones that are in the mendeley data
 ##as much as we can, will have to filter out the last set by hand
@@ -148,13 +149,63 @@ write.csv(as.data.frame(combo_data), "combined_data_unedited.csv", row.names = F
 library(readxl)
 edited_data <- read_xlsx("combined_data_edited.xlsx")
 
+##exclude the duplicates
+edited_data <- subset(edited_data, 
+                      duplicate == "TRUE")
 ```
 
-
-####find missing data abstracts, keywords 
-
-## Get abstracts BRM
+## Find Missing Abstracts, Keywords
 
 ```{r}
-##add the webscraping here sigh 
+edited_data$KEYWORDS[edited_data$KEYWORDS == "NA"] = NA
+summary(is.na(edited_data$KEYWORDS))
+
+edited_data$ABSTRACT[edited_data$ABSTRACT == "NA"] = NA
+summary(is.na(edited_data$ABSTRACT))
+
+edited_data$TITLE[edited_data$TITLE == "NA"] = NA
+summary(is.na(edited_data$TITLE))
+
+#find missing abstracts from BRM
+good_abstracts <- subset(edited_data, 
+                         !is.na(ABSTRACT))
+
+missing_abstracts_BRM <- subset(edited_data, 
+                                is.na(ABSTRACT) & grepl("springer", edited_data$URL))
+
+missing_abstracts_other <- subset(edited_data, 
+                                is.na(ABSTRACT) & !grepl("springer", edited_data$URL))
 ```
+
+### RVest for BRM
+
+```{r}
+library(rvest)
+
+for (i in 78:nrow(missing_abstracts_BRM)){
+  
+  ##current url
+  url_temp <- missing_abstracts_BRM$URL[i]
+  
+  #Reading the HTML code from the website 
+  webpage <- read_html(url_temp)
+  abstract <- html_nodes(webpage, ".Para")
+  missing_abstracts_BRM$ABSTRACT[i] <- html_text(abstract)[1]
+  
+  keywords <- html_nodes(webpage, ".KeywordGroup")
+  keywords <- html_text(keywords)
+  
+  if (length(keywords)>0){
+  
+  keywords <- gsub("These keywords were added by machine and not by the authors. This process is experimental and the keywords may be updated as the learning algorithm improves.", "", keywords)
+  missing_abstracts_BRM$KEYWORDS[i] <- gsub("\t|\n", "", keywords)
+  } else {missing_abstracts_BRM$KEYWORDS[i] <- NA}
+  
+
+  ##quick break 
+  Sys.sleep(runif(1, 0, 10))
+}
+
+
+```
+
