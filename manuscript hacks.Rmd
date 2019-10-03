@@ -61,6 +61,20 @@ output            : papaja::apa6_pdf
 library("papaja")
 ```
 
+```{r}
+master_data <- read.csv("source_search/completed_clean_data.csv", stringsAsFactors = F)
+
+training_data <- subset(master_data,
+                        YEAR < 2019 | is.na(YEAR) | code == "Yes")
+testing_data <- subset(master_data,
+                       YEAR > 2018 & code == "No")
+
+write.csv(training_data, "training_test_data.csv", row.names = F)
+write.csv(testing_data, "new_data.csv", row.names = F)
+```
+
+
+
 ```{r analysis-preferences}
 # Seed for random number generation
 set.seed(42)
