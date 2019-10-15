@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Classification Python in R"
 author: "Erin M. Buchanan"
 date: "10/15/2019"
 output: html_document
@@ -8,8 +8,16 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+#library
 library(reticulate)
+
+#examine where your pythons are
+py_config()
+
+#put in the path to the anaconda installation
 use_python("/Users/buchanan/anaconda3/bin/python", required = TRUE)
+
+#see that it's updated
 py_config()
 ```
 
