@@ -1,0 +1,35 @@
+---
+title: "Untitled"
+author: "Erin M. Buchanan"
+date: "10/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(reticulate)
+use_python("/Users/buchanan/anaconda3/bin/python", required = TRUE)
+py_config()
+```
+
+```{python}
+import pandas as pd
+
+# scikitlearn
+from sklearn.feature_extraction.text import CountVectorizer,TfidfVectorizer
+from sklearn.base import TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+
+# NLP
+import spacy
+import string
+from spacy.lang.en import English
+from spacy.lang.en.stop_words import STOP_WORDS
+import en_core_web_sm
+nlp = en_core_web_sm.load()
+```
+

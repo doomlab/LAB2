@@ -9,43 +9,27 @@ library(taRifx)
 ## [1] - Importing Data...
 
 #dataset 1
-data <- data.frame(read.csv("data/training_test_data.csv"))
+data <- data.frame(read.csv("data/training_test_data.csv", stringsAsFactors = F))
 str(data)
 
-title = c(lapply(data[,23], toString))
-str(title)
-abstract = c(lapply(data[,27], toString))
-str(abstract)
-keywords = c(lapply(data[,29], toString))
-str(keywords)
-
-for(i in seq_along(length(data))) {
-  text = c(mapply(paste, sep="", title, abstract))
-  text = c(mapply(paste, sep="", text, keywords))
-}
-
-str(text)
-head(text)
-
-str(data$code)
-class = as.numeric(data$code)
-class = ifelse(class == 1, 0, 1)
-str(class)
-unique(class)
-table(class)
-
+small_data <- data[ , c("KEYWORDS", "TITLE", "ABSTRACT", "code")]
+small_data$text <- paste(small_data$KEYWORDS, small_data$TITLE, small_data$ABSTRACT, sep = " ")
+small_data$class <- as.numeric(as.factor(small_data$code))
+small_data$class <- ifelse(class == 1, 0, 1)
+table(small_data$class)
 
 ## [2] - Data Pre-processing...
-text = tolower(text)
-text = str_replace_all(string = text, pattern = "[;#âº?¹®â..ðaÅ.â.zTY£Âã±¢§¬¶¯³²²~°¯´'¸ïªî©¥¤^.µ.«¨¦î©¦ª¦¥¦î¤î©µ-îª¥¨???T??????zâ..Å.â.zÅ.â.zâ...â..â..Ë.Å.â..Å.â.zâ..â.oâ..Å.â.zâ..Å.â.zâ..Å.â.z]", replacement = "")
-text = tm::removeWords(text, stopwords(kind = "SMART"))
-text = tm::removePunctuation(text)
-text = tm::removeNumbers(text)
-text = tm::stripWhitespace(text)
-text = tm::stemDocument(text)
-str(text)
-head(text)
+small_data$text <- iconv(small_data$text, "latin1", "ASCII", sub = " ")
+small_data$text <- gsub("^Keywords", " ", small_data$text)
+small_data$text <- gsub("^NA| NA ", " ", small_data$text)
+small_data$text <- tolower(small_data$text)
+small_data$text <- removeWords(small_data$text, stopwords(kind = "SMART"))
+small_data$text <- removePunctuation(small_data$text)
+small_data$text <- removeNumbers(small_data$text)
+small_data$text <- stripWhitespace(small_data$text)
+small_data$text <- stemDocument(small_data$text)
 
+write.csv(data, "data/training_test_data_cleaned.csv")
 
 #dataset 2
 data2 <- data2.frame(read.csv("data/new_data.csv"))
@@ -76,7 +60,7 @@ table(class1)
 
 ## [2] - Data Pre-processing...
 text1 = tolower(text1)
-text1 = str_replace_all(string = text1, pattern = "[;#âº?¹®â..ðaÅ.â.zTY£Âã±¢§¬¶¯³²²~°¯´'¸ïªî©¥¤^.µ.«¨¦î©¦ª¦¥¦î¤î©µ-îª¥¨???T??????zâ..Å.â.zÅ.â.zâ...â..â..Ë.Å.â..Å.â.zâ..â.oâ..Å.â.zâ..Å.â.zâ..Å.â.z]", replacement = "")
+text1 = str_replace_all(string = text1, pattern = "[;#??????..?a?.?.zTY??ã±¢???????~???'???î©¥?^.?.???î©¦??????î©µ-îª¥????T??????z?..?.?.z?.?.z?...?..?..?.?.?..?.?.z?..?.o?..?.?.z?..?.?.z?..?.?.z]", replacement = "")
 text1 = tm::removeWords(text1, stopwords(kind = "SMART"))
 text1 = tm::removePunctuation(text1)
 text1 = tm::removeNumbers(text1)
