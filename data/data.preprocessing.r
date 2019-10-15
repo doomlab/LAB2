@@ -32,54 +32,26 @@ small_data$text <- stemDocument(small_data$text)
 write.csv(data, "data/training_test_data_cleaned.csv")
 
 #dataset 2
-data2 <- data2.frame(read.csv("data/new_data.csv"))
+data2 <- data.frame(read.csv("data/new_data.csv", stringsAsFactors = F))
 str(data2)
 
-title1 = c(lapply(data2[,23], toString))
-str(title1)
-abstract1 = c(lapply(data2[,27], toString))
-str(abstract1)
-keywords1 = c(lapply(data2[,29], toString))
-str(keywords1)
-
-for(i in seq_along(length(data2))) {
-  text1 = c(mapply(paste, sep="", title1, abstract1))
-  text1 = c(mapply(paste, sep="", text1, keywords1))
-}
-
-str(text1)
-head(text1)
-
-str(data2$code)
-class1 = as.numeric(data2$code)
-class1 = ifelse(class1 == 1, 0, 1)
-str(class1)
-unique(class1)
-table(class1)
-
+small_data2 <- data2[ , c("KEYWORDS", "TITLE", "ABSTRACT", "code")]
+small_data2$text <- paste(small_data2$KEYWORDS, small_data2$TITLE, small_data2$ABSTRACT, sep = " ")
+small_data2$class <- as.numeric(as.factor(small_data2$code))
+small_data2$class <- ifelse(class == 1, 0, 1)
+table(small_data2$class)
 
 ## [2] - Data Pre-processing...
-text1 = tolower(text1)
-text1 = str_replace_all(string = text1, pattern = "[;#??????..?a?.?.zTY??㱢???????~???'????^.?.?????????-????T??????z?..?.?.z?.?.z?...?..?..?.?.?..?.?.z?..?.o?..?.?.z?..?.?.z?..?.?.z]", replacement = "")
-text1 = tm::removeWords(text1, stopwords(kind = "SMART"))
-text1 = tm::removePunctuation(text1)
-text1 = tm::removeNumbers(text1)
-text1 = tm::stripWhitespace(text1)
-text1 = tm::stemDocument(text1)
-str(text1)
-head(text1)
+small_data2$text <- iconv(small_data2$text, "latin1", "ASCII", sub = " ")
+small_data2$text <- gsub("^Keywords", " ", small_data2$text)
+small_data2$text <- gsub("^NA| NA ", " ", small_data2$text)
+small_data2$text <- tolower(small_data2$text)
+small_data2$text <- removeWords(small_data2$text, stopwords(kind = "SMART"))
+small_data2$text <- removePunctuation(small_data2$text)
+small_data2$text <- removeNumbers(small_data2$text)
+small_data2$text <- stripWhitespace(small_data2$text)
+small_data2$text <- stemDocument(small_data2$text)
 
-data = data.frame(cbind(text, class))
-colnames(data) = c("text", "class")
-str(data)
+write.csv(data, "data/new_data_cleaned.csv")
 
-data2 = data.frame(cbind(text1, class1))
-colnames(data2) = c("text", "class")
-str(data2)
-
-data.combo = rbind(data, data2)
-str(data.combo)
-
-write.csv(data, "data.csv")
-write.csv(data.combo, "data.combo.csv")
-
+write.csv(rbind(small_data, small_data2), "data/data.combo.csv")
