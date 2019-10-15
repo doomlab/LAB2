@@ -22,8 +22,8 @@ import spacy
 import string
 from spacy.lang.en import English
 from spacy.lang.en.stop_words import STOP_WORDS
-import en_core_web_sm
-nlp = en_core_web_sm.load()
+nlp = spacy.load('en')
+
 
 # Get pre-processed data
 data = pd.read_csv('completed_clean_data.csv')
@@ -36,8 +36,6 @@ data.head()
 punctuations = string.punctuation
 
 # Create our list of stopwords
-nlp = spacy.load('C:/Users/Ari/anaconda3/Lib/site-packages/en_core_web_sm') #doesn't works
-nlp = en_core_web_sm.load()
 stop_words = STOP_WORDS
 
 # Load English tokenizer, tagger, parser, NER and word vectors
