@@ -27,5 +27,31 @@ Websites and journals currently used:
 
 Second, run the data creation script:
 
-- `data_creation.Rmd`: This file creates the data for examination in the project. Run this file to update  
+- `data_creation.Rmd`: This file creates the data for examination in the project. Run this file to update to the newest datasets.
 
+
+edited files
+- doi check
+- name check 
+
+## Data folder
+
+- run preprocessing script 
+- and then output (test and train) or new stuff for when the paper is written 
+
+## Classification 
+
+- here is where it would get classified
+- all the rules we talked about last time 
+
+## Shiny App Folder 
+
+- updated files in the shiny app 
+
+## Manuscript
+
+- this folder has the static paper
+
+## Presentation
+
+here's the scip stuff 

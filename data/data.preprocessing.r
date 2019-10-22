@@ -9,7 +9,7 @@ library(taRifx)
 ## [1] - Importing Data...
 
 #dataset 1
-data <- data.frame(read.csv("data/training_test_data.csv", stringsAsFactors = F))
+data <- data.frame(read.csv("data/input_data/training_test_data.csv", stringsAsFactors = F))
 str(data)
 
 small_data <- data[ , c("KEYWORDS", "TITLE", "ABSTRACT", "code")]
@@ -29,10 +29,10 @@ small_data$text <- removeNumbers(small_data$text)
 small_data$text <- stripWhitespace(small_data$text)
 small_data$text <- stemDocument(small_data$text)
 
-write.csv(data, "data/training_test_data_cleaned.csv")
+write.csv(small_data, "data/output_data/training_test_data_cleaned.csv")
 
 #dataset 2
-data2 <- data.frame(read.csv("data/new_data.csv", stringsAsFactors = F))
+data2 <- data.frame(read.csv("data/input_data/new_data.csv", stringsAsFactors = F))
 str(data2)
 
 small_data2 <- data2[ , c("KEYWORDS", "TITLE", "ABSTRACT", "code")]
@@ -52,6 +52,6 @@ small_data2$text <- removeNumbers(small_data2$text)
 small_data2$text <- stripWhitespace(small_data2$text)
 small_data2$text <- stemDocument(small_data2$text)
 
-write.csv(data, "data/new_data_cleaned.csv")
+write.csv(small_data2, "data/output_data/new_data_cleaned.csv")
 
-write.csv(rbind(small_data, small_data2), "data/data.combo.csv")
+write.csv(rbind(small_data, small_data2), "data/output_data/data.combo.csv")
