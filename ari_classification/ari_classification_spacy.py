@@ -26,7 +26,7 @@ nlp = spacy.load('en')
 
 
 # Get pre-processed data
-data = pd.read_csv('completed_clean_data.csv')
+data = pd.read_csv('data.combo.csv')
 data.head()
 
 
@@ -82,7 +82,7 @@ tfidf_vector = TfidfVectorizer(tokenizer = spacy_tokenizer)
 #### SPLIT DATA ####
 
 X = data['text'] # the features we want to analyze
-ylabels = data['sentiment'] # the labels, or answers, we want to test against
+ylabels = data['class'] # the labels, or answers, we want to test against
 
 X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3)
 
@@ -110,7 +110,9 @@ predicted = pipe.predict(X_test)
 print("Logistic Regression Accuracy:",metrics.accuracy_score(y_test, predicted))
 print("Logistic Regression Precision:",metrics.precision_score(y_test, predicted))
 print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted))
-
+## Accuracy  .872
+## Precision .916
+## Recall    .885
 
 #### PREDICT DATA ####
 
@@ -131,20 +133,35 @@ data.head()
 probabilities = pipe.predict_proba(new_data)
 
 print(probabilities[:10])
-
+#[[9.74457872e-01 2.55421282e-02]
+ #[9.21846704e-01 7.81532955e-02]
+ #[9.99168498e-01 8.31501836e-04]
+ #[9.99999086e-01 9.13883116e-07]
+ #[9.76496177e-01 2.35038225e-02]
+ #[9.88453091e-01 1.15469091e-02]
+ #[9.84397228e-01 1.56027720e-02]
+ #[9.98578598e-01 1.42140171e-03]
+ #[9.98511351e-01 1.48864853e-03]
+ #[9.76128585e-01 2.38714153e-02]]
+ 
 #want the probability of the 1, which is how the 0-1 gets scored
 probabilities_list = [item[1] for item in probabilities] 
 
 print(probabilities_list[:10])
+#[0.02554212818983025, 0.07815329553574211, 0.0008315018364152335, 9.138831161591439e-07,
+# 0.023503822515766746, 0.011546909072819246, 0.015602771986502187, 
+# 0.001421401712487694, 0.0014886485308452828, 0.023871415309757872]
 
 data['probability'] = probabilities_list
 data.head()
 
-data['polarity'].corr(data['prediction'])
 
-data['polarity'].corr(data['probability'])
+##What is this? Do we need this?
+#data['polarity'].corr(data['prediction'])
+#data['polarity'].corr(data['probability'])
 
-data.to_csv(r'scored_twitch.csv')
+
+data.to_csv(r'ari_predicted_data.csv')
 
 
 
