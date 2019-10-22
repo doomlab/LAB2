@@ -1,9 +1,13 @@
 ---
 title: "Dataset Creation"
 author: "Erin M. Buchanan"
-date: "7/23/2019"
+date: "`r Sys.Date()`"
 output: html_document
 ---
+
+## Source Search and Cleanup
+
+This file takes the input data for the LAB2, updates the potential files and matches, and outputs new data to examine for addition to the lab. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
