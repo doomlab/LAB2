@@ -8,6 +8,10 @@ Update to the Linguistic Annotated Bibliography
 First, update all relevant search files, which are stored in the `input_data` folder:
 
 - `lab_table.csv`: The current version of the LAB table, which is also stored in our shiny app folder.
+- `mendeley.bib`: A bibtex file that includes all the LAB citations, which is also stored in our shiny app folder. 
+
+Searches: 
+
 - `lexical_DB_*.csv`: The search term "lexical database" on source websites.
 - `linguistic_DB_*.csv`: The search term "linguistic database" on source websites. 
 - `lexical_norms_*.csv`: The search term "lexical norms" on source websites.
