@@ -15,7 +15,8 @@ library(reticulate)
 #py_config()
 
 #put in the path to the anaconda installation
-use_python("C:/Users/ari/anaconda3/python.exe", required = TRUE)
+#use_python("C:/Users/ari/anaconda3/python.exe", required = TRUE)
+#use_python("/Users/buchanan/anaconda3/bin/python", required = TRUE)
 
 #see that it's updated
 py_config()
@@ -41,15 +42,15 @@ nlp = spacy.load('en')
 
 ```
 
-
-```{python logistic_regression}
+```{python load_data}
 # -*- coding: utf-8 -*-
 
 # Get pre-processed data
-data = pd.read_csv('data.combo.csv')
+data = pd.read_csv('../data/output_data/training_test_data_cleaned.csv')
 data.head()
+```
 
-
+```{python spacy_model_load}
 #### LOAD SPACY MODEL ####
 
 # Create our list of punctuation marks
@@ -74,8 +75,9 @@ def spacy_tokenizer(sentence):
 
     # return preprocessed list of tokens
     return mytokens
+```
 
-
+```{python transformer}
 #### TRANSFORMER ####
 
 # Custom transformer using spaCy
@@ -106,7 +108,9 @@ ylabels = data['class'] # the labels, or answers, we want to test against
 
 X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3)
 
+```
 
+```{python model}
 #### CREATE MODEL ####
 
 # Logistic Regression Classifier
@@ -120,7 +124,9 @@ pipe = Pipeline([("cleaner", predictors()),
 # model generation
 pipe.fit(X_train,y_train)
 
+```
 
+```{python predicting_test}
 #### PREDICTING WITH TEST ####
 
 # Predicting with a test dataset
@@ -130,71 +136,59 @@ predicted = pipe.predict(X_test)
 print("Logistic Regression Accuracy:",metrics.accuracy_score(y_test, predicted))
 print("Logistic Regression Precision:",metrics.precision_score(y_test, predicted))
 print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted))
-## Accuracy  .872
-## Precision .916
-## Recall    .885
+```
 
+##loop over this 100 times 
+##also try creating data from the data.preprocessing script with the stem document turned off 
+##confusion matrix
+##add the probabilities to this dataset 
+##look at a histogram of the probabilities (by class)
+##look at the big mismatches 
+##try changing out bow for tfidf
+
+```{python new_data_labeled}
+#import data
+#pipe it 
+#metrics
+```
+
+```{python predicting_new_data_no_labels}
 #### PREDICT DATA ####
+#import new data
+new_data = pd.read_csv("../data/output_data/new_data_cleaned.csv")
+new_data.columns
 
 #take the data out of pandas to a list 
-new_data = data['text'].tolist()
-type(new_data)
+new_text = new_data['text'].tolist()
+#type(new_text)
 
 #predict new data
-predictions = pipe.predict(new_data)
+predictions = pipe.predict(new_text)
 
 #saves as an array
-print(type(predictions))
+#print(type(predictions))
 
 #add it to the dataframe
-data['prediction'] = predictions
-data.head()
+new_data['prediction'] = predictions
 
-probabilities = pipe.predict_proba(new_data)
+probabilities = pipe.predict_proba(new_text)
 
-print(probabilities[:10])
-#[[9.74457872e-01 2.55421282e-02]
- #[9.21846704e-01 7.81532955e-02]
- #[9.99168498e-01 8.31501836e-04]
- #[9.99999086e-01 9.13883116e-07]
- #[9.76496177e-01 2.35038225e-02]
- #[9.88453091e-01 1.15469091e-02]
- #[9.84397228e-01 1.56027720e-02]
- #[9.98578598e-01 1.42140171e-03]
- #[9.98511351e-01 1.48864853e-03]
- #[9.76128585e-01 2.38714153e-02]]
+#print(probabilities[:10])
  
 #want the probability of the 1, which is how the 0-1 gets scored
+#new_data['class']
 probabilities_list = [item[1] for item in probabilities] 
 
-print(probabilities_list[:10])
-#[0.02554212818983025, 0.07815329553574211, 0.0008315018364152335, 9.138831161591439e-07,
-# 0.023503822515766746, 0.011546909072819246, 0.015602771986502187, 
-# 0.001421401712487694, 0.0014886485308452828, 0.023871415309757872]
+#print(probabilities_list[:10])
 
-data['probability'] = probabilities_list
-data.head()
-
+new_data['probability'] = probabilities_list
 
 ##What is this? Do we need this?
 #data['polarity'].corr(data['prediction'])
 #data['polarity'].corr(data['probability'])
 
-
-data.to_csv(r'ari_predicted_data.csv')
-
+new_data.to_csv(r'ari_predicted_data.csv')
 ```
 
-
-
-```{r}
-py$x
-
-swiss = "cheese"
-```
-
-```{python}
-r.swiss
-```
 
 
