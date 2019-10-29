@@ -29,7 +29,7 @@ small_data$text <- removeNumbers(small_data$text)
 small_data$text <- stripWhitespace(small_data$text)
 
 ##write out one here
-write.csv(small_data2, "data/output_data/training_test_data_cleaned_no_stem.csv")
+write.csv(small_data, "data/output_data/training_test_data_cleaned_no_stem.csv")
 
 ##the stem
 small_data$text <- stemDocument(small_data$text)
