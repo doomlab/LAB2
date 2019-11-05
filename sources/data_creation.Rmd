@@ -16,6 +16,8 @@ library(tm)
 library(dplyr)
 library(plyr)
 library(bib2df)
+library(expss)
+library(rvest)
 ```
 
 ## Import .bib files from search data
@@ -217,6 +219,19 @@ summary(is.na(edited_data$ABSTRACT))
 edited_data$TITLE[edited_data$TITLE == "NA"] = NA
 summary(is.na(edited_data$TITLE))
 
+#find missing abstracts from spring websites includes BRM and LRE
+good_abstracts <- subset(edited_data, 
+                         !is.na(ABSTRACT))
+summary(is.na(good_abstracts$ABSTRACT))
+
+missing_abstracts_BRM <- subset(edited_data, 
+                                is.na(ABSTRACT) & grepl("springer", edited_data$URL))
+summary(is.na(missing_abstracts_BRM$ABSTRACT))
+
+missing_abstracts_other <- subset(edited_data, 
+                                is.na(ABSTRACT) & !grepl("springer", edited_data$URL))
+summary(is.na(missing_abstracts_other$ABSTRACT))
+
 ##fill in missing from previous dataset
 last_run <- read.csv("completed_clean_data.csv", stringsAsFactors = F)
 last_run$TITLE <- iconv(last_run$TITLE, "latin1", "ASCII", sub = "") #take out symbols
@@ -225,27 +240,32 @@ last_run$TITLE <- removePunctuation(last_run$TITLE) #take out rest of punct
 last_run$TITLE = tolower(last_run$TITLE) #lower case
 last_run$TITLE <- gsub("  ", " ", last_run$TITLE) #squeeze out double spaces
 
-#match abstracts
+#match abstracts and keywords
+missing_abstracts_BRM$ABSTRACT <- 
+  vlookup(lookup_value = missing_abstracts_BRM$TITLE, #code to look up
+          dict = last_run, #look up dataset
+          result_column = "ABSTRACT", #value you want
+          lookup_column = "TITLE") #how to match 
 
+missing_abstracts_BRM$KEYWORDS <- 
+  vlookup(lookup_value = missing_abstracts_BRM$TITLE, #code to look up
+          dict = last_run, #look up dataset
+          result_column = "KEYWORDS", #value you want
+          lookup_column = "TITLE") #how to match         
 
-
-#find missing abstracts from BRM
-good_abstracts <- subset(edited_data, 
-                         !is.na(ABSTRACT))
-
-missing_abstracts_BRM <- subset(edited_data, 
-                                is.na(ABSTRACT) & grepl("springer", edited_data$URL))
-
-missing_abstracts_other <- subset(edited_data, 
-                                is.na(ABSTRACT) & !grepl("springer", edited_data$URL))
+good_abstracts_BRM <- subset(missing_abstracts_BRM,
+                             !is.na(ABSTRACT))
+missing_abstracts_BRM <- subset(missing_abstracts_BRM,
+                                is.na(ABSTRACT))
 ```
 
-### RVest for BRM
+### RVest for BRM, LRE, Computers and the Humanities
+
+Note that Computers in the Humanities is the old LRE name.
 
 ```{r}
-library(rvest)
-
-for (i in 78:nrow(missing_abstracts_BRM)){
+#loop over websites and get abstracts
+for (i in 1:nrow(missing_abstracts_BRM)){
   
   ##current url
   url_temp <- missing_abstracts_BRM$URL[i]
@@ -275,7 +295,10 @@ summary(is.na(missing_abstracts_BRM$ABSTRACT))
 ## Recombine the data
 
 ```{r}
-all_data <- rbind(missing_abstracts_BRM, missing_abstracts_other, good_abstracts)
+all_data <- rbind(missing_abstracts_BRM, 
+                  missing_abstracts_other, 
+                  good_abstracts,
+                  good_abstracts_BRM)
 nrow(all_data)
 table(all_data$code)
 
