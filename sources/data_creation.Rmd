@@ -20,14 +20,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(bib2df)
 
 #import all bib files
-lexical_DB_ebsco = bib2df("lexical_DB_ebsco.bib")
-lexical_DB_PO = bib2df("lexical_DB_PO.bib")
-lexical_norms_ebsco = bib2df("lexical_norms_ebsco.bib")
-lexical_norms_PO = bib2df("lexical_norms_PO.bib")
-linguistic_DB_ebsco = bib2df("linguistic_DB_ebsco.bib")
-linguistic_DB_PO = bib2df("linguistic_DB_PO.bib")
-linguistic_norms_ebsco = bib2df("linguistic_norms_ebsco.bib")
-linguistic_norms_PO = bib2df("linguistic_norms_PO.bib")
+lexical_DB_ebsco = bib2df("input_data/lexical_DB_ebsco.bib")
+lexical_DB_PO = bib2df("input_data/lexical_DB_PO.bib")
+lexical_norms_ebsco = bib2df("input_data/lexical_norms_ebsco.bib")
+lexical_norms_PO = bib2df("input_data/lexical_norms_PO.bib")
+linguistic_DB_ebsco = bib2df("input_data/linguistic_DB_ebsco.bib")
+linguistic_DB_PO = bib2df("input_data/linguistic_DB_PO.bib")
+linguistic_norms_ebsco = bib2df("input_data/linguistic_norms_ebsco.bib")
+linguistic_norms_PO = bib2df("input_data/linguistic_norms_PO.bib")
 
 #fix the ones without ISBN
 lexical_DB_PO$ISBN = NA
@@ -62,12 +62,12 @@ allbib$YEAR = substr(allbib$YEAR, 0, 4)
 
 ```{r}
 #import the files
-lexical_DB_BRM  = read.csv("lexical_DB_BRM.csv", stringsAsFactors = F)
-lexical_norms_BRM  = read.csv("lexical_norms_BRM.csv", stringsAsFactors = F)
-linguistic_DB_BRM = read.csv("linguistic_DB_BRM.csv", stringsAsFactors = F)
-linguistic_norms_BRM = read.csv("linguistic_norms_BRM.csv", stringsAsFactors = F)
-corpus_BRM = read.csv("corpus_BRM.csv", stringsAsFactors = F)
-norms_BRM = read.csv("norms_BRM.csv", stringsAsFactors = F)
+lexical_DB_BRM  = read.csv("input_data/lexical_DB_BRM.csv", stringsAsFactors = F)
+lexical_norms_BRM  = read.csv("input_data/lexical_norms_BRM.csv", stringsAsFactors = F)
+linguistic_DB_BRM = read.csv("input_data/linguistic_DB_BRM.csv", stringsAsFactors = F)
+linguistic_norms_BRM = read.csv("input_data/linguistic_norms_BRM.csv", stringsAsFactors = F)
+corpus_BRM = read.csv("input_data/corpus_BRM.csv", stringsAsFactors = F)
+norms_BRM = read.csv("input_data/norms_BRM.csv", stringsAsFactors = F)
 
 #merge together
 allBRM = rbind(lexical_DB_BRM, lexical_norms_BRM, 
@@ -78,18 +78,45 @@ allBRM = rbind(lexical_DB_BRM, lexical_norms_BRM,
 allBRM = unique(allBRM)
 ```
 
+## Import LRE csv files from search data
+
+```{r}
+#import the files
+lexical_DB_LRE  = read.csv("input_data/lexical_DB_LRE.csv", stringsAsFactors = F)
+lexical_norms_LRE  = read.csv("input_data/lexical_norms_LRE.csv", stringsAsFactors = F)
+linguistic_DB_LRE = read.csv("input_data/linguistic_DB_LRE.csv", stringsAsFactors = F)
+linguistic_norms_LRE = read.csv("input_data/linguistic_norms_LRE.csv", stringsAsFactors = F)
+corpus_LRE = read.csv("input_data/corpus_LRE.csv", stringsAsFactors = F)
+norms_LRE = read.csv("input_data/norms_LRE.csv", stringsAsFactors = F)
+
+#merge together
+allLRE = rbind(lexical_DB_LRE, lexical_norms_LRE, 
+               linguistic_DB_LRE, linguistic_norms_LRE,
+               norms_LRE, corpus_LRE)
+
+#remove duplicates
+allLRE = unique(allLRE)
+```
+
 ## Merge search data
 
 ```{r}
+#fix colnames to merge
 colnames(allBRM) = c("TITLE", "JOURNAL", 
                      "BOOKTITLE", "VOLUME", 
                      "NUMBER", "DOI", "AUTHOR", 
                      "YEAR", "URL", "CATEGORY")
 allBRM$CATEGORY = toupper(allBRM$CATEGORY)
 
+colnames(allLRE) = c("TITLE", "JOURNAL", 
+                     "BOOKTITLE", "VOLUME", 
+                     "NUMBER", "DOI", "AUTHOR", 
+                     "YEAR", "URL", "CATEGORY")
+allLRE$CATEGORY = toupper(allLRE$CATEGORY)
+
 library(plyr)
 
-alldata = rbind.fill(allbib, allBRM)
+alldata = rbind.fill(allbib, allBRM, allLRE)
 
 alldata$TITLE = tolower(alldata$TITLE)
 alldata$TITLE = gsub("  ", " ", alldata$TITLE)
@@ -99,11 +126,11 @@ alldata$TITLE = gsub("  ", " ", alldata$TITLE)
 alldata = alldata[!duplicated(alldata$TITLE) , ]
 ```
 
-## The lab_table yes data + merge with Mendeley yes data
+## The lab_table included data + merge with Mendeley included data
 
 ```{r}
-lab_data = read.csv("lab_table.csv", stringsAsFactors = F, encoding = "UTF-8")
-mendeley_data = bib2df("mendeley.bib")
+lab_data = read.csv("input_data/lab_table.csv", stringsAsFactors = F, encoding = "UTF-8")
+mendeley_data = bib2df("input_data/mendeley.bib")
 
 lab_data$ref_title = gsub("[^[:print:]]","", lab_data$ref_title)
 lab_data$ref_title = tolower(lab_data$ref_title)
@@ -128,7 +155,6 @@ mendeley_data_red = mendeley_data[ , names(alldata)]
 alldata$code = "No"
 mendeley_data_red$code = "Yes"
 
-
 ##remove all data ones that are in the mendeley data
 ##as much as we can, will have to filter out the last set by hand
 
@@ -144,8 +170,28 @@ combo_data = subset(combo_data, duplicate == T)
 library(dplyr)
 combo_data = combo_data %>% mutate_all(as.character)
 
-write.csv(as.data.frame(combo_data), "combined_data_unedited.csv", row.names = F)
+##exclude ones with corrected at the beginning
+no_correct <- subset(combo_data, 
+                     !grepl("^correction|^erratum", combo_data$TITLE))
+
+##exclude duplicates that are simply small text changes
+stringdist()
+
+write.csv(as.data.frame(combo_data), "output_data/combined_data_unedited.csv", row.names = F)
 ```
+
+## Hand Fixing the Output
+
+There are often values that need to be handchecked for repetition. First, we will import the previously checked file.
+
+```{r}
+library(readxl)
+previously_checked <- read_excel("output_data/previously_checked.xlsx")
+previously_excluded <- subset(previously_checked,
+                              duplicate == "exclude")
+
+```
+
 
 ## Import the new one 
 

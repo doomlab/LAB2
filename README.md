@@ -1,9 +1,11 @@
 # LAB2
 Update to the Linguistic Annotated Bibliography
 
+- Last work through of sources was November 4th, 2019.
+
 # Workflow
 
-## The Sources Folder
+## The `Sources` Folder
 
 First, update all relevant search files, which are stored in the `input_data` folder:
 
@@ -12,12 +14,14 @@ First, update all relevant search files, which are stored in the `input_data` fo
 
 Searches: 
 
-- `lexical_DB_*.csv`: The search term "lexical database" on source websites.
-- `linguistic_DB_*.csv`: The search term "linguistic database" on source websites. 
-- `lexical_norms_*.csv`: The search term "lexical norms" on source websites.
-- `linguistic_norms_*.csv`: The search term "linguistic norms" on source websites. 
-- `corpus_*.csv`: The search term "corpus" only on journal websites.
-- `norms_*.csv`: The search term "norms" only on journal websites.
+To do these searches, we used "" to keep like terms together to avoid articles that only used `norms` or `lexical` when appropriate. 
+
+- `lexical_DB_*.csv/bib`: The search term "lexical database" on source websites.
+- `linguistic_DB_*.csv/bib`: The search term "linguistic database" on source websites. 
+- `lexical_norms_*.csv/bib`: The search term "lexical norms" on source websites.
+- `linguistic_norms_*.csv/bib`: The search term "linguistic norms" on source websites. 
+- `corpus_*.csv/bib`: The search term "corpus" only on journal websites.
+- `norms_*.csv/bib`: The search term "norms" only on journal websites.
 
 Websites and journals currently used:
 - EBSCO host for PSYCInfo
