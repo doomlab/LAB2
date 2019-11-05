@@ -11,14 +11,16 @@ This file takes the input data for the LAB2, updates the potential files and mat
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tm)
+library(dplyr)
+library(plyr)
+library(bib2df)
 ```
 
 ## Import .bib files from search data
 
 ```{r}
-#install.packages("bib2df")
-library(bib2df)
-
 #import all bib files
 lexical_DB_ebsco = bib2df("input_data/lexical_DB_ebsco.bib")
 lexical_DB_PO = bib2df("input_data/lexical_DB_PO.bib")
@@ -114,8 +116,6 @@ colnames(allLRE) = c("TITLE", "JOURNAL",
                      "YEAR", "URL", "CATEGORY")
 allLRE$CATEGORY = toupper(allLRE$CATEGORY)
 
-library(plyr)
-
 alldata = rbind.fill(allbib, allBRM, allLRE)
 
 alldata$TITLE = tolower(alldata$TITLE)
@@ -162,51 +162,52 @@ mendeley_data_red$code = "Yes"
 combo_data = rbind(mendeley_data_red, alldata)
 
 ##find duplicates
-combo_data$TITLE = tolower(combo_data$TITLE)
-combo_data$duplicate = !duplicated(combo_data$TITLE)
+combo_data$TITLE <- iconv(combo_data$TITLE, "latin1", "ASCII", sub = "") #take out symbols
+combo_data$TITLE <- gsub("-", " ", combo_data$TITLE) #take out dashes 
+combo_data$TITLE <- removePunctuation(combo_data$TITLE) #take out rest of punct
+combo_data$TITLE = tolower(combo_data$TITLE) #lower case
+combo_data$TITLE <- gsub("  ", " ", combo_data$TITLE) #squeeze out double spaces
+combo_data$duplicate = !duplicated(combo_data$TITLE) #figure out duplicates
 
-combo_data = subset(combo_data, duplicate == T)
+nrow(subset(combo_data, duplicate == F & code == "Yes")) #make sure you aren't losing the Yes
 
-library(dplyr)
-combo_data = combo_data %>% mutate_all(as.character)
+reduce_titles = subset(combo_data, duplicate == T)
+reduce_titles = reduce_titles %>% mutate_all(as.character)
 
 ##exclude ones with corrected at the beginning
-no_correct <- subset(combo_data, 
-                     !grepl("^correction|^erratum", combo_data$TITLE))
+no_correct <- subset(reduce_titles, 
+                     !grepl("^correction|^erratum", reduce_titles$TITLE))
+no_correct <- subset(no_correct, 
+                     !is.na(TITLE))
 
-##exclude duplicates that are simply small text changes
-stringdist()
+##find any new weird repeats
+flag_titles <- NA
 
-write.csv(as.data.frame(combo_data), "output_data/combined_data_unedited.csv", row.names = F)
-```
+##find ones to flag that have very similar titles
+for (i in 1:length(no_correct$TITLE)){
+  temp_dist <- stringdist(no_correct$TITLE[i], no_correct$TITLE)
+  if (sum(temp_dist <= 5) > 1) {
+    flag_titles <- rbind(flag_titles, no_correct[ temp_dist <=5, ])
+  }
+}
 
-## Hand Fixing the Output
+flag_titles_red <- subset(flag_titles,
+                      !duplicated(flag_titles$TITLE))
+write.csv(as.data.frame(flag_titles_red), "output_data/flagged_titles.csv", row.names = F)
+##open this file and hand edit it!
 
-There are often values that need to be handchecked for repetition. First, we will import the previously checked file.
+##exclude previously flagged titles
+exclude_these <- read.csv("output_data/exclude_titles.csv", stringsAsFactors = F)
 
-```{r}
-library(readxl)
-previously_checked <- read_excel("output_data/previously_checked.xlsx")
-previously_excluded <- subset(previously_checked,
-                              duplicate == "exclude")
-
-```
-
-
-## Import the new one 
-
-```{r}
-library(readxl)
-edited_data <- read_xlsx("combined_data_edited.xlsx")
-
-##exclude the duplicates
-edited_data <- subset(edited_data, 
-                      duplicate == "TRUE")
+final_excluded <- subset(no_correct, 
+                         !(no_correct$TITLE %in% exclude_these$exclude_titles))
 ```
 
 ## Find Missing Abstracts, Keywords
 
 ```{r}
+edited_data <- final_excluded
+
 edited_data$KEYWORDS[edited_data$KEYWORDS == "NA"] = NA
 summary(is.na(edited_data$KEYWORDS))
 
@@ -215,6 +216,18 @@ summary(is.na(edited_data$ABSTRACT))
 
 edited_data$TITLE[edited_data$TITLE == "NA"] = NA
 summary(is.na(edited_data$TITLE))
+
+##fill in missing from previous dataset
+last_run <- read.csv("completed_clean_data.csv", stringsAsFactors = F)
+last_run$TITLE <- iconv(last_run$TITLE, "latin1", "ASCII", sub = "") #take out symbols
+last_run$TITLE <- gsub("-", " ", last_run$TITLE) #take out dashes 
+last_run$TITLE <- removePunctuation(last_run$TITLE) #take out rest of punct
+last_run$TITLE = tolower(last_run$TITLE) #lower case
+last_run$TITLE <- gsub("  ", " ", last_run$TITLE) #squeeze out double spaces
+
+#match abstracts
+
+
 
 #find missing abstracts from BRM
 good_abstracts <- subset(edited_data, 
