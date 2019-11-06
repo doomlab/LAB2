@@ -24,19 +24,22 @@ To do these searches, we used "" to keep like terms together to avoid articles t
 - `norms_*.csv/bib`: The search term "norms" only on journal websites.
 
 Websites and journals currently used:
+
 - EBSCO host for PSYCInfo
 - PLoS One
 - Behavior Research Methods
-- Language Resources and Evaluation 
+- Language Resources and Evaluation (Computers in the Humanities)
 
 Second, run the data creation script:
 
-- `data_creation.Rmd`: This file creates the data for examination in the project. Run this file to update to the newest datasets.
+- `data_creation.Rmd`: This file creates the data for examination in the project. Run this file to update to the newest datasets. Please note, you do have to manually update the list of duplicate titles, but the script provides a note on the possible options to examine. 
 
+The `output_data` folder will contain:
 
-edited files
-- doi check
-- name check 
+- `flagged_titles.csv`: A file created by the script for you to check to help determine duplicate titles not caught by the data cleaning
+- `exclude_titles.csv`: A file you update to exclude those titles that are truly duplicates
+- `completed_clean_data.csv`: The finalized data from this dataset with new abstracts. 
+
 
 ## Data folder
 
