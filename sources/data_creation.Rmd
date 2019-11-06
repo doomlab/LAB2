@@ -18,6 +18,7 @@ library(plyr)
 library(bib2df)
 library(expss)
 library(rvest)
+library(stringdist)
 ```
 
 ## Import .bib files from search data
@@ -233,7 +234,7 @@ missing_abstracts_other <- subset(edited_data,
 summary(is.na(missing_abstracts_other$ABSTRACT))
 
 ##fill in missing from previous dataset
-last_run <- read.csv("completed_clean_data.csv", stringsAsFactors = F)
+last_run <- read.csv("output_data/completed_clean_data.csv", stringsAsFactors = F)
 last_run$TITLE <- iconv(last_run$TITLE, "latin1", "ASCII", sub = "") #take out symbols
 last_run$TITLE <- gsub("-", " ", last_run$TITLE) #take out dashes 
 last_run$TITLE <- removePunctuation(last_run$TITLE) #take out rest of punct
@@ -265,7 +266,7 @@ Note that Computers in the Humanities is the old LRE name.
 
 ```{r}
 #loop over websites and get abstracts
-for (i in 1:nrow(missing_abstracts_BRM)){
+for (i in 3:nrow(missing_abstracts_BRM)){
   
   ##current url
   url_temp <- missing_abstracts_BRM$URL[i]
@@ -302,7 +303,7 @@ all_data <- rbind(missing_abstracts_BRM,
 nrow(all_data)
 table(all_data$code)
 
-write.csv(all_data, "completed_clean_data.csv", row.names = F)
+write.csv(all_data, "output_data/completed_clean_data.csv", row.names = F)
 ```
 
 
