@@ -52,7 +52,7 @@ nlp = spacy.load('en')
 # -*- coding: utf-8 -*-
 
 # Get pre-processed data
-data = pd.read_csv('../02.data/output_data/training_data_stem.csv')
+data = pd.read_csv('../02.data/output_data/training_data_no_stem.csv')
 data.head()
 ```
 
@@ -173,7 +173,7 @@ print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted))
 ```{python predicting_new_data_no_labels}
 #### PREDICT DATA ####
 #import new data
-new_data = pd.read_csv("../02.data/output_data/test_data_new_stem.csv")
+new_data = pd.read_csv("../02.data/output_data/test_data_new_no_stem.csv")
 new_data.columns
 
 #take the data out of pandas to a list 
@@ -209,7 +209,7 @@ new_data.to_csv(r'spacy_predicted_new.csv')
 ```{python predicting_new_data_no_labels}
 #### PREDICT DATA ####
 #import new data
-new_data = pd.read_csv("../02.data/output_data/test_data_LRE_stem.csv")
+new_data = pd.read_csv("../02.data/output_data/test_data_LRE_no_stem.csv")
 new_data.columns
 
 #take the data out of pandas to a list 
