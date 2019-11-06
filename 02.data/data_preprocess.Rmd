@@ -142,3 +142,13 @@ write.csv(testing_data_new, "output_data/test_data_new_stem.csv", row.names = F)
 write.csv(testing_data_LRE, "output_data/test_data_LRE_stem.csv", row.names = F)
 ```
 
+## Yes/No
+
+```{r}
+table(training_data$code)
+
+table(testing_data_new$code)
+
+table(testing_data_LRE$code)
+```
+
