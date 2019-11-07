@@ -85,11 +85,9 @@ str(valid_set5)
 
 #Set parameters:
 
-#maxlen <- 200
-maxlen <- 10 #temp small run 
+maxlen <- 200
 batch_size <- 128
-#embedding_dims <- 2000
-embedding_dims <- 200 #temp small run
+embedding_dims <- 2000
 filters <- 64
 kernel_size <- 5
 epochs <- 15
@@ -115,55 +113,49 @@ length(y_valid)
 y_train <- to_categorical(y_train)
 str(y_train)
 head(y_train)
-
 y_valid <- to_categorical(y_valid)
 str(y_valid)
- 
+
 model <- keras_model_sequential() %>% 
   layer_embedding(max_features, embedding_dims, input_length = maxlen) %>%
   layer_conv_1d(
     filters/4, kernel_size, 
     kernel_initializer = "VarianceScaling",
-    padding = "same", strides = 1L
+    padding = "same", activation = "relu", strides = 1L
   ) %>%
-  layer_activation_leaky_relu(0.50) %>%
   layer_conv_1d(
-    filters, kernel_size-1,
+    filters/2, kernel_size-1,
     kernel_initializer = "VarianceScaling",
-    padding = "same", strides = 1L
+    padding = "same", activation = "relu", strides = 1L
   ) %>%  
-  layer_activation_leaky_relu(0.50) %>%
   layer_conv_1d(
-    filters/2, kernel_size-3, 
+    filters/2, kernel_size-2, 
+    kernel_initializer = "VarianceScaling",
+    padding = "same", activation = "relu", strides = 1L
+  ) %>%
+  layer_dropout(0.5) %>%
+  layer_conv_1d(
+    filters/2, kernel_size-2,  
+    kernel_initializer = "VarianceScaling",
+    padding = "same", activation = "relu", strides = 1L
+  ) %>%
+  layer_conv_1d(
+    filters/4, kernel_size-2, 
     kernel_initializer = "VarianceScaling",
     padding = "same", activation = "relu", strides = 1L
   ) %>%
   layer_max_pooling_1d(pool_size) %>%
-  layer_dropout(0.5) %>%
-  layer_conv_1d(
-    filters/2, kernel_size-3,  
-    kernel_initializer = "VarianceScaling",
-    padding = "same", strides = 1L
-  ) %>%
-  layer_activation_leaky_relu(0.50) %>%
-  layer_conv_1d(
-    filters/4, kernel_size-3, 
-    kernel_initializer = "VarianceScaling",
-    padding = "same", strides = 1L
-  ) %>%
-  layer_activation_leaky_relu(0.50) %>%
-  layer_max_pooling_1d(pool_size) %>%
   layer_batch_normalization()  %>%
   layer_dropout(0.5) %>%
-  layer_lstm(units=lstm_output_size, 
+  layer_lstm(units=lstm_output_size, activation = "relu", 
              kernel_initializer = "VarianceScaling") %>%
-  layer_activation_leaky_relu(0.50) %>%
   layer_dropout(0.5) %>%
   layer_dense(ncol(y_train)) %>%
   layer_activation("sigmoid") %>% compile(
     loss = "binary_crossentropy",
-    optimizer = optimizer_nadam(lr = 0.003),
-    metrics = "accuracy")
+    optimizer = optimizer_nadam(lr = 0.002),
+    metrics = "accuracy"
+  )
 
 summary(model)
  
@@ -174,8 +166,8 @@ hist <- model %>%
     batch_size = batch_size,
     epochs = epochs,
     validation_split = 0.20,
-    callbacks = list(callback_early_stopping(patience = 10, monitor = 'val_acc', restore_best_weights = TRUE),
-                     callback_reduce_lr_on_plateau(monitor = 'val_acc', factor = 1e-1, 
+    callbacks = list(callback_early_stopping(patience = 10, monitor = 'val_accuracy', restore_best_weights = TRUE),
+                     callback_reduce_lr_on_plateau(monitor = 'val_accuracy', factor = 1e-1, 
                                                    patience=9, verbose=1, mode='auto', 
                                                    min_delta=1e-1, cooldown=0, min_lr=1e-8)))
 
@@ -201,6 +193,20 @@ model %>% save_model_hdf5("model9.h5")
 
 load_model_hdf5("model9.h5")
 ```
+
+## Evaluate on new
+
+```{r}
+score <- model %>% evaluate(x_new_input, y_new_ouput, batch_size = batch_size)
+score
+
+pred <- model %>% predict(x_new_input, y_new_ouput, batch_size = batch_size)
+y_pred = round(pred)
+y_pred
+
+
+```
+
 
 ## Print out the model
 

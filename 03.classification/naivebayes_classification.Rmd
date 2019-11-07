@@ -99,7 +99,7 @@ for word in token2:
 print(all_words_clean[:10])
 ```
 
-## List of most common words, 100 words are chosen based on trail and error
+## List of most common words, 500 words are chosen based on trail and error
 
 ```{python}
 all_freq = nltk.FreqDist(w.lower() for w in all_words_clean)
@@ -150,7 +150,7 @@ print (len(validation_set)) # Output:
 
 ```{python}
 from nltk import NaiveBayesClassifier
- 
+
 classifier = NaiveBayesClassifier.train(train_set)
 from nltk import classify 
  
@@ -255,7 +255,7 @@ print (classifier.show_most_informative_features(20))
 refsets = collections.defaultdict(set)
 testsets = collections.defaultdict(set)
 
-for i, (feats, label) in enumerate(test_set):
+for i, (feats, label) in enumerate(test_feature):
     refsets[label].add(i)
     observed = classifier.classify(feats)
     testsets[observed].add(i)
