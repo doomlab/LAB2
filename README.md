@@ -40,7 +40,6 @@ The `output_data` folder will contain:
 - `exclude_titles.csv`: A file you update to exclude those titles that are truly duplicates
 - `completed_clean_data.csv`: The finalized data from this dataset with new abstracts. 
 
-
 ## `Data` folder
 
 The data folder contains a pre-processing script that cleans the text of punctuation, stop words, symbols, and stems. For the purposes of publication and testing/validating the algorithm, we split the data into three subsets:
@@ -58,10 +57,11 @@ In the `output_data` folder, there are `stem` and `no_stem` versions of each fil
 
 ## The `Classification` folder 
 
-In this folder, you can view the types of classification that we examined for this project. 
+In this folder, you can view the types of classification that we examined for this project. Each author tested their own model. The original plan was to examine the LAB data as a training dataset with testing on the new LRE data and the new 2019 data. However, it was clear from initial testing that the LRE data needed to be part of training to capture the different style of abstracts and stylistics to accurately predict new data. Therefore, training occurred with the LAB data + LRE data, dev-testing with a small subset of that data, and extension testing to the new 2019 data. 
 
-- `spacy_classification.Rmd` includes a spacy pipeline for classifying our documents, and the resulting probabilities and prediction values for the testing datasets. 
-- 
+- `spacy_classification.Rmd` includes a spacy pipeline for classifying our documents, and the resulting probabilities and prediction values for the testing datasets using logistic regression.
+- `spacy_svc_classification.Rmd` is a similar approach using linear SVC with simple text tokenization. 
+
 
 ## Shiny App Folder 
 
