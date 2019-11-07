@@ -17,7 +17,7 @@ library(reticulate)
 #py_config()
 
 #put in the path to the anaconda installation
-#use_python("C:/Users/ari/anaconda3/python.exe", required = TRUE)
+use_python("C:/Users/ari/anaconda3/python.exe", required = TRUE)
 #use_python("/Users/buchanan/anaconda3/bin/python", required = TRUE)
 
 #see that it's updated
@@ -117,10 +117,10 @@ tfidf_vector = TfidfVectorizer(tokenizer = spacy_tokenizer)
 
 #### SPLIT DATA ####
 
-X = data['text'] # the features we want to analyze
+x = data['text'] # the features we want to analyze
 ylabels = data['class'] # the labels, or answers, we want to test against
 
-X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3)
+X_train, X_test, y_train, y_test = train_test_split(x, ylabels, test_size=0.3)
 ```
 
 ## Run the classifier
@@ -155,6 +155,46 @@ print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted))
 ```
 
 ##loop over this 100 times 
+
+```{python logreg_loop}
+def predict_with_pipe(X, YLABELS):
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, YLABELS, test_size=0.3)
+    
+    # model generation
+    pipe.fit(X_train,y_train)
+    
+    predicted = pipe.predict(X_test)
+
+    # Model Accuracy
+    acc = metrics.accuracy_score(y_test, predicted)
+    prec = metrics.precision_score(y_test, predicted)
+    rec = metrics.recall_score(y_test, predicted)
+    
+    accuracy_predict.append(acc)
+    precision_predict.append(prec)
+    recall_predict.append(rec)
+    
+    return
+
+accuracy_predict = []
+precision_predict = []
+recall_predict = []
+
+for i in range(100):
+    predict_with_pipe(x, ylabels)
+    
+
+metrics_df = pd.DataFrame(list(zip(accuracy_predict, precision_predict, recall_predict)), 
+                          columns =['Accuracy', 'Precision', 'Recall'])
+
+metrics_df.head()
+
+print(metrics_df.mean(axis=0))
+
+```
+
+
 ##also try creating data from the data.preprocessing script with the stem document turned off 
 ##confusion matrix
 ##add the probabilities to this dataset 
