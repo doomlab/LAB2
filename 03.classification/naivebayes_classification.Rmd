@@ -1,0 +1,275 @@
+---
+title: "Naive Bayes Classification"
+author: "Nikhil Chate"
+date: "11/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reticulate)
+py_config()
+```
+
+## Import the text
+
+Note: this analysis was performed before we wrote the pre-processing script, but left it in to catch anything else we didn't catch.
+
+```{python}
+#Excel pre-processing--
+#Column TITLE,ABSTRACT,KEYWORDS are conatenated together separating by space,using & statement 
+#ABSTRACT FILTERED BY 'NA' and corresponding rows are deleted.
+#special character Â which occurs in KEYWORDS is replace by a space
+
+import csv
+import pandas as pd 
+import re, string, unicodedata
+import nltk
+from bs4 import BeautifulSoup
+from nltk import word_tokenize, sent_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import LancasterStemmer, WordNetLemmatizer
+
+#df=pd.read_csv('train_data2.csv',encoding='utf-8')
+#df_pd = pd.DataFrame(df)
+
+#update to the github data setup
+training = pd.read_csv('../02.data/output_data/training_data_no_stem.csv')
+lre_data = pd.read_csv('../02.data/output_data/test_data_LRE_no_stem.csv')
+
+df = pd.concat([training,lre_data])
+
+print('Dataframe type is:',type(df))
+print('Dataframe shape is:',df.shape)
+print('Columns in data frame are:',df.columns)
+print('Missing values in Dataframe are:',df.isnull().sum())
+print(df[:2])
+```
+
+## Clean up the text
+
+```{python}
+df_clean=df.copy()
+df_clean['text'] = [re.sub('<.*?>', '', e) for e in df_clean['text']] #remove HTML tags
+df_clean['text'] =[re.sub(r'[^\w\s]', '', e) for e in df_clean['text']]## remove punc
+df_clean['text'] =[re.sub(r'\d+', '', e) for e in df_clean['text']]# remove numbers
+df_clean['text']=[re.sub(r'[â€šÃÃº]?', '',e) for e in df_clean['text'] ]# remove special character 
+df_clean['text']=[re.sub(r'[⁰¹²³⁴⁵⁶⁷⁸⁹]?', '',e) for e in df_clean['text'] ]# remove superscript
+df_clean['text']=[re.sub(r'NA', '',e) for e in df_clean['text'] ]#remove 'NA' and replace by space
+df_clean['text']=[re.sub(r'Â\xa0', ' ',e) for e in df_clean['text'] ] # remove Â\xa0
+df_clean['text']=df_clean['text'].str.lower() # remove Â\xa0
+
+
+print(df_clean[:1])
+print(df[:1])
+```
+
+## Feature extraction
+
+```{python}
+feature_extraction=df_clean.copy() # copying the dataframe
+
+feature_extraction1=feature_extraction.drop(['code'],axis=1)
+feature_extraction2=feature_extraction1['text'].values.tolist()
+print(feature_extraction2[:1])
+```
+
+## Tokenization and Lemmatization
+
+Stemmer was not working well, so went with lemmatization (this matches our other models as well).
+
+```{python}
+token=word_tokenize(str(feature_extraction2))
+token1=[w.lower() for w in token]# lower case
+#porter = nltk.PorterStemmer()
+#token2=[porter.stem(t) for t in token1]
+wnl = nltk.WordNetLemmatizer()
+token2= [wnl.lemmatize(t) for t in token1]
+print(token2[:5])
+```
+
+## Remove stopwords and punctuation
+
+```{python}
+from nltk.corpus import stopwords
+all_words_clean = []
+for word in token2:
+    if word not in stopwords.words('english') and word not in string.punctuation:
+        all_words_clean.append(word)
+print(all_words_clean[:10])
+```
+
+## List of most common words, 100 words are chosen based on trail and error
+
+```{python}
+all_freq = nltk.FreqDist(w.lower() for w in all_words_clean)
+word_features= list(all_freq.most_common(500))
+word_features1=[x[0] for x in word_features]
+
+print (all_freq.most_common(40))
+```
+
+```{python}
+def document_features(document): # [_document-classify-extractor]
+    document_words = set(document) # [_document-classify-set]
+    features = {}
+    for word in word_features1:
+        features['contains({})'.format(word)] = (word in document_words)
+    return features
+
+#print(document_features(token2)) 
+```
+
+```{python}
+list1=df_clean['text'].values.tolist()
+token=[word_tokenize(str(x)) for x in list1]
+
+list2=df_clean['code'].values.tolist()
+labeled_df=list(zip(token,list2))
+labeled_df[:2]
+from random import shuffle 
+shuffle(labeled_df)
+```
+
+```{python}
+feature_set = [(document_features(doc), category) for (doc, category) in labeled_df]
+#print(feature_set[0])
+```
+
+## Train the model
+
+```{python}
+print (len(feature_set)) # Output: 
+
+train_set = feature_set[:round(len(feature_set)*.8)]#Validation
+validation_set = feature_set[round(len(feature_set)*.8):]
+ 
+print (len(train_set)) # Output: 
+print (len(validation_set)) # Output:
+```
+
+```{python}
+from nltk import NaiveBayesClassifier
+ 
+classifier = NaiveBayesClassifier.train(train_set)
+from nltk import classify 
+ 
+accuracy = classify.accuracy(classifier, validation_set)
+print(accuracy) # Output: 0.365 len feture set 20#output 51% feature 50
+```
+
+```{python}
+print(classifier.show_most_informative_features(20))
+```
+
+```{python}
+from nltk.metrics.scores import (precision, recall, f_measure)
+import collections
+
+#creates a spot for the data to go
+refsets = collections.defaultdict(set)
+testsets = collections.defaultdict(set)
+
+for i, (feats, label) in enumerate(test_set):
+    refsets[label].add(i)
+    observed = classifier.classify(feats)
+    testsets[observed].add(i)
+    
+##figure out the different features
+print(refsets.keys())
+    
+##precision on statement only, could loop through these
+print("Precision: ", precision(refsets['No'], testsets['No']))
+print("Recall: ", recall(refsets['No'], testsets['No']))
+print("F Score: ", f_measure(refsets['No'], testsets['No']))
+
+print("Precision: ", precision(refsets['Yes'], testsets['Yes']))
+print("Recall: ", recall(refsets['Yes'], testsets['Yes']))
+print("F Score: ", f_measure(refsets['Yes'], testsets['Yes']))
+```
+
+## Test on New Data
+
+```{python}
+df_test=pd.read_csv('../02.data/output_data/test_data_new_no_stem.csv', encoding='utf-8')
+df_test1= pd.DataFrame(df_test)
+print('Dataframe type is:',type(df_test1))
+print('Dataframe shape is:',df_test1.shape)
+print('Columns in data frame are:',df_test1.columns)
+print('Missing values in Dataframe are:',df_test1.isnull().sum())
+#print(df_test1[:2])
+
+
+df_clean1=df_test1.copy()
+df_clean1['text'] = [re.sub('<.*?>', '', e) for e in df_clean1['text']] #remove HTML tags
+df_clean1['text'] =[re.sub(r'[^\w\s]', '', e) for e in df_clean1['text']]## remove punc
+df_clean1['text'] =[re.sub(r'\d+', '', e) for e in df_clean1['text']]# remove numbers
+df_clean1['text']=[re.sub(r'[â€šÃÃº]?', '',e) for e in df_clean1['text'] ]# remove special character 
+df_clean1['text']=[re.sub(r'[⁰¹²³⁴⁵⁶⁷⁸⁹]?', '',e) for e in df_clean1['text'] ]# remove superscript
+df_clean1['text']=[re.sub(r'NA', '',e) for e in df_clean1['text'] ]#remove 'NA' and replace by space
+df_clean1['text']=[re.sub(r'Â\xa0', ' ',e) for e in df_clean1['text'] ] # remove Â\xa0
+df_clean1['text']=df_clean1['text'].str.lower() # remove Â\xa0
+```
+
+```{python}
+test_list=df_clean1['text'].values.tolist()
+test_token=[word_tokenize(str(x)) for x in test_list]
+
+test_list2=df_clean1['code'].values.tolist()
+test_labeled=list(zip(test_token,test_list2))
+#print(test_labeled[:2])
+from random import shuffle 
+shuffle(test_labeled)
+
+test_feature = [(document_features(doc), category) for (doc, category) in test_labeled]
+#print (test_feature)
+
+test_list=df_clean1['text'].values.tolist()
+test_token=[word_tokenize(str(x)) for x in test_list]
+
+test_list2=df_clean1['code'].values.tolist()
+test_labeled=list(zip(test_token,test_list2))
+#print(test_labeled[:2])
+from random import shuffle 
+shuffle(test_labeled)
+
+test_feature = [(document_features(doc), category) for (doc, category) in test_labeled]
+#print (test_feature)
+ 
+test_set = test_feature #new data
+train_set = train_set#old traning data
+ 
+print (len(train_set)) # Output: 
+print (len(test_set)) # Output: 
+ 
+accuracy = classify.accuracy(classifier, test_set)
+print(accuracy) # Output: 0.365 len feture set 20#output 51% feature 50
+```
+
+```{python}
+print (classifier.show_most_informative_features(20))
+```
+
+```{python}
+#creates a spot for the data to go
+refsets = collections.defaultdict(set)
+testsets = collections.defaultdict(set)
+
+for i, (feats, label) in enumerate(test_set):
+    refsets[label].add(i)
+    observed = classifier.classify(feats)
+    testsets[observed].add(i)
+    
+##figure out the different features
+print(refsets.keys())
+    
+##precision on statement only, could loop through these
+print("Precision: ", precision(refsets['No'], testsets['No']))
+print("Recall: ", recall(refsets['No'], testsets['No']))
+print("F Score: ", f_measure(refsets['No'], testsets['No']))
+
+print("Precision: ", precision(refsets['Yes'], testsets['Yes']))
+print("Recall: ", recall(refsets['Yes'], testsets['Yes']))
+print("F Score: ", f_measure(refsets['Yes'], testsets['Yes']))
+```
+
