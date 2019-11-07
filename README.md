@@ -61,7 +61,8 @@ In this folder, you can view the types of classification that we examined for th
 
 - `spacy_classification.Rmd` includes a spacy pipeline for classifying our documents, and the resulting probabilities and prediction values for the testing datasets using logistic regression.
 - `spacy_svc_classification.Rmd` is a similar approach using linear SVC with simple text tokenization. 
-
+- `naivebayes_classification.Rmd` is a Naive Bayes classifier algorithm on the top 500 most common words from the abstracts.
+- 
 
 ## Shiny App Folder 
 

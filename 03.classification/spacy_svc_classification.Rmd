@@ -7,11 +7,13 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(reticulate)
 ```
 
 ## Load the libraries 
 
 ```{python}
+import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.base import TransformerMixin
 from sklearn.pipeline import Pipeline

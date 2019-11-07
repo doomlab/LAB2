@@ -1,0 +1,217 @@
+---
+title: "Keras Tensor CNN"
+author: "Jonathan Korn"
+date: "11/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r}
+library(keras)
+library(readr)
+library(dplyr)
+library(plyr)
+library(tokenizers)
+library(tm)
+library(stringr)
+library(topicmodels)
+library(doParallel)
+library(ggplot2)
+library(scales)
+library(data.table)
+library(readtext)
+library(taRifx)
+```
+
+## Importing and setting up the data
+
+```{r}
+## [1] - Importing Data...
+
+data1 <- data.frame(read.csv("../02.data/output_data/training_data_no_stem.csv"))
+N =  nrow(data1)
+ind = sample(N, N*1, replace = FALSE) 
+data1  = data1[ind,-1]
+apply(data1,2,function(x) sum(is.na(x)))#Check for Missing...
+str(data1)
+
+data2 <- data.frame(read.csv("../02.data/output_data/test_data_LRE_no_stem.csv"))
+N2 =  nrow(data2)
+ind2 = sample(N2, N2*1, replace = FALSE) 
+data2  = data2[ind2,-1]
+apply(data2,2,function(x) sum(is.na(x))) #Check for Missing...
+str(data2)
+
+data = rbind(data1, data2)
+str(data)
+text = data$text
+```
+
+## The model
+
+```{r}
+## - [3] - Modeling... 
+
+max_features <- 12596
+tokenizer <- text_tokenizer(num_words = max_features)
+str(tokenizer$word_index)
+
+tokenizer %>% 
+  fit_text_tokenizer(text)
+
+tokenizer$document_count
+head(tokenizer$word_counts)
+write.csv(data.frame(tokenizer$word_index), "vocab.csv")
+
+text_seqs <- texts_to_sequences(tokenizer, text)
+text_seqs %>%
+  head()
+str(text_seqs)
+
+train_set4 = text_seqs[1:round(length(text_seqs)*.8, 0)]
+str(train_set4)
+valid_set4 = text_seqs[round(length(text_seqs)*.8, 0):length(text_seqs)]
+str(valid_set4)
+
+train_set5 = data$class[1:round(length(text_seqs)*.8, 0)]
+str(train_set5)
+valid_set5 = data$class[round(length(text_seqs)*.8, 0):length(text_seqs)]
+str(valid_set5)
+
+#Set parameters:
+
+maxlen <- 200
+batch_size <- 128
+embedding_dims <- 2000
+filters <- 64
+kernel_size <- 5
+epochs <- 15
+pool_size = 4
+lstm_output_size = 64
+
+x_train <- train_set4 %>%
+  pad_sequences(maxlen = maxlen)
+dim(x_train)
+
+x_valid <- valid_set4 %>%
+  pad_sequences(maxlen = maxlen)
+dim(x_valid)
+
+y_train <- as.matrix(train_set5)
+str(y_train)
+length(y_train)
+
+y_valid <- as.matrix(valid_set5)
+str(y_valid)
+length(y_valid)
+
+y_train <- to_categorical(y_train)
+str(y_train)
+head(y_train)
+
+y_valid <- to_categorical(y_valid)
+str(y_valid)
+ 
+model <- keras_model_sequential() %>% 
+  layer_embedding(max_features, embedding_dims, input_length = maxlen) %>%
+  layer_conv_1d(
+    filters/4, kernel_size, 
+    kernel_initializer = "VarianceScaling",
+    padding = "same", strides = 1L
+  ) %>%
+  layer_activation_leaky_relu(0.50) %>%
+  layer_conv_1d(
+    filters, kernel_size-1,
+    kernel_initializer = "VarianceScaling",
+    padding = "same", strides = 1L
+  ) %>%  
+  layer_activation_leaky_relu(0.50) %>%
+  layer_conv_1d(
+    filters/2, kernel_size-3, 
+    kernel_initializer = "VarianceScaling",
+    padding = "same", activation = "relu", strides = 1L
+  ) %>%
+  layer_max_pooling_1d(pool_size) %>%
+  layer_dropout(0.5) %>%
+  layer_conv_1d(
+    filters/2, kernel_size-3,  
+    kernel_initializer = "VarianceScaling",
+    padding = "same", strides = 1L
+  ) %>%
+  layer_activation_leaky_relu(0.50) %>%
+  layer_conv_1d(
+    filters/4, kernel_size-3, 
+    kernel_initializer = "VarianceScaling",
+    padding = "same", strides = 1L
+  ) %>%
+  layer_activation_leaky_relu(0.50) %>%
+  layer_max_pooling_1d(pool_size) %>%
+  layer_batch_normalization()  %>%
+  layer_dropout(0.5) %>%
+  layer_lstm(units=lstm_output_size, 
+             kernel_initializer = "VarianceScaling") %>%
+  layer_activation_leaky_relu(0.50) %>%
+  layer_dropout(0.5) %>%
+  layer_dense(ncol(y_train)) %>%
+  layer_activation("sigmoid") %>% compile(
+    loss = "binary_crossentropy",
+    optimizer = optimizer_nadam(lr = 0.003),
+    metrics = "accuracy")
+
+summary(model)
+ 
+hist <- model %>%
+  fit(
+    x_train,
+    y_train,
+    batch_size = batch_size,
+    epochs = epochs,
+    validation_split = 0.20,
+    callbacks = list(callback_early_stopping(patience = 10, monitor = 'val_acc', restore_best_weights = TRUE),
+                     callback_reduce_lr_on_plateau(monitor = 'val_acc', factor = 1e-1, 
+                                                   patience=9, verbose=1, mode='auto', 
+                                                   min_delta=1e-1, cooldown=0, min_lr=1e-8)))
+
+plot(hist)
+
+df_out <- hist$metrics %>% 
+  {data.frame(acc = .$acc[epochs], val_acc = .$val_acc[epochs])}
+
+df_out
+
+score <- model %>% evaluate(x_valid, y_valid, batch_size = batch_size)
+score
+
+pred <- model %>% predict(x_valid, y_valid, batch_size = batch_size)
+y_pred = round(pred)
+y_pred
+
+summary(model)
+model$save
+
+#Save the model
+model %>% save_model_hdf5("model9.h5")
+
+load_model_hdf5("model9.h5")
+```
+
+## Print out the model
+
+```{r eval = F}
+# - {} - Visualize & Capture Training Reports for each Models Training Sessions==================================
+
+library(tfruns)
+#Model_Reports...
+training_run("model.R")
+
+view_run("runs/2019-10-23T18-07-39Z")
+```
+
+
+
+
