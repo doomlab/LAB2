@@ -194,20 +194,6 @@ print(metrics_df.mean(axis=0))
 
 ```
 
-
-##also try creating data from the data.preprocessing script with the stem document turned off 
-##confusion matrix
-##add the probabilities to this dataset 
-##look at a histogram of the probabilities (by class)
-##look at the big mismatches 
-##try changing out bow for tfidf
-
-```{python new_data_labeled}
-#import data
-#pipe it 
-#metrics
-```
-
 ## Predicting New 2019 Data
 
 ```{python predicting_new_data_no_labels}
@@ -365,6 +351,10 @@ print("Logistic Regression Recall:",metrics.recall_score(new_LRE_answer, new_LRE
 
 ## Final Model Suggestion
 
+##confusion matrix
+##look at a histogram of the probabilities (by class)
+##try changing out bow for tfidf
+
 - Train and test with the LAB + new LRE data.
 - Extend to the new 2019 data. 
 
@@ -424,5 +414,17 @@ new_data['probability'] = probabilities_list
 new_data.to_csv(r'spacy_predicted_new.csv')
 ```
 
+## check out this function in erin's spacy model
 
+def printNMostInformative(vectorizer, clf, N):
+    feature_names = vectorizer.get_feature_names()
+    coefs_with_fns = sorted(zip(clf.coef_[0], feature_names))
+    topClass1 = coefs_with_fns[:N]
+    topClass2 = coefs_with_fns[:-(N + 1):-1]
+    print("Class 1 best: ")
+    for feat in topClass1:
+        print(feat)
+    print("Class 2 best: ")
+    for feat in topClass2:
+        print(feat)
 

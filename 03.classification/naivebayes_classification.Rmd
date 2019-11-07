@@ -170,7 +170,7 @@ import collections
 refsets = collections.defaultdict(set)
 testsets = collections.defaultdict(set)
 
-for i, (feats, label) in enumerate(test_set):
+for i, (feats, label) in enumerate(validation_set):
     refsets[label].add(i)
     observed = classifier.classify(feats)
     testsets[observed].add(i)
