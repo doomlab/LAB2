@@ -209,35 +209,118 @@ new_data.to_csv(r'spacy_predicted_new.csv')
 ```{python predicting_new_data_no_labels}
 #### PREDICT DATA ####
 #import new data
-new_data = pd.read_csv("../02.data/output_data/test_data_LRE_no_stem.csv")
-new_data.columns
+new_data2 = pd.read_csv("../02.data/output_data/test_data_LRE_no_stem.csv")
+new_data2.columns
 
 #take the data out of pandas to a list 
-new_text = new_data['text'].tolist()
-new_class = new_data['class'].tolist()
+new_text2 = new_data2['text'].tolist()
+new_class2 = new_data2['class'].tolist()
 
 #predict new data
-predictions = pipe.predict(new_text)
+predictions2 = pipe.predict(new_text2)
 
 # Model Accuracy
-print("Logistic Regression Accuracy:",metrics.accuracy_score(new_class, predictions))
-print("Logistic Regression Precision:",metrics.precision_score(new_class, predictions))
-print("Logistic Regression Recall:",metrics.recall_score(new_class, predictions))
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_class2, predictions2))
+print("Logistic Regression Precision:",metrics.precision_score(new_class2, predictions2))
+print("Logistic Regression Recall:",metrics.recall_score(new_class2, predictions2))
 
 #add it to the dataframe
-new_data['prediction'] = predictions
+new_data2['prediction'] = predictions2
 
-probabilities = pipe.predict_proba(new_text)
+probabilities2 = pipe.predict_proba(new_text2)
  
 #want the probability of the 1, which is how the 0-1 gets scored
 #new_data['class']
-probabilities_list = [item[1] for item in probabilities] 
+probabilities_list2 = [item[1] for item in probabilities2] 
 
 #print(probabilities_list[:10])
 
-new_data['probability'] = probabilities_list
+new_data2['probability'] = probabilities_list2
 
-new_data.to_csv(r'spacy_predicted_LRE.csv')
+new_data2.to_csv(r'spacy_predicted_LRE.csv')
+```
+
+## What if we did the whole dataset together?
+
+### Create test-train data
+
+```{python data_all}
+data_full = pd.read_csv('../02.data/output_data/complete_processed_data_no_stem.csv')
+
+#### SPLIT DATA ####
+
+X = data_full['text'] # the features we want to analyze
+ylabels = data_full['class'] # the labels, or answers, we want to test against
+
+X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3)
+```
+
+### Run the classifier
+
+```{python model2}
+#### CREATE MODEL ####
+
+# Logistic Regression Classifier
+classifier = LogisticRegression()
+
+# Create pipeline using Bag of Words
+pipe2 = Pipeline([("cleaner", predictors()),
+                 ('vectorizer', bow_vector),
+                 ('classifier', classifier)])
+
+# model generation
+pipe2.fit(X_train,y_train)
+```
+
+### How well did that work? 
+
+```{python predicting_test}
+#### PREDICTING WITH TEST ####
+
+# Predicting with a test dataset
+predicted_full = pipe2.predict(X_test)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(y_test, predicted_full))
+print("Logistic Regression Precision:",metrics.precision_score(y_test, predicted_full))
+print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted_full))
+```
+
+- If we toss everything in at once, is the prediction still bad for those smaller datasets?
+
+```{python probabilities_part2}
+#predict data
+original_lab_text = data['text'].tolist()
+original_lab_answer = data['class'].tolist()
+
+original_lab_predict = pipe2.predict(original_lab_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(original_lab_answer, original_lab_predict))
+print("Logistic Regression Precision:",metrics.precision_score(original_lab_answer, original_lab_predict))
+print("Logistic Regression Recall:",metrics.recall_score(original_lab_answer, original_lab_predict))
+
+#predict new_data
+new_2019_text = new_data['text'].tolist()
+new_2019_answer = new_data['class'].tolist()
+
+new_2019_predict = pipe2.predict(new_2019_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_2019_answer, new_2019_predict))
+print("Logistic Regression Precision:",metrics.precision_score(new_2019_answer, new_2019_predict))
+print("Logistic Regression Recall:",metrics.recall_score(new_2019_answer, new_2019_predict))
+
+#predict new_data2
+new_LRE_text = new_data2['text'].tolist()
+new_LRE_answer = new_data2['class'].tolist()
+
+new_LRE_predict = pipe2.predict(new_LRE_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_LRE_answer, new_LRE_predict))
+print("Logistic Regression Precision:",metrics.precision_score(new_LRE_answer, new_LRE_predict))
+print("Logistic Regression Recall:",metrics.recall_score(new_LRE_answer, new_LRE_predict))
 ```
 
 
