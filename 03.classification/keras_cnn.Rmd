@@ -85,9 +85,11 @@ str(valid_set5)
 
 #Set parameters:
 
-maxlen <- 200
+#maxlen <- 200
+maxlen <- 10 #temp small run 
 batch_size <- 128
-embedding_dims <- 2000
+#embedding_dims <- 2000
+embedding_dims <- 200 #temp small run
 filters <- 64
 kernel_size <- 5
 epochs <- 15
