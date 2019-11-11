@@ -38,7 +38,7 @@ linguistic_norms_PO = bib2df("input_data/linguistic_norms_PO.bib")
 lexical_DB_PO$ISBN = NA
 lexical_norms_ebsco$ISBN = NA
 lexical_norms_PO$ISBN = NA
-linguistic_DB_ebsco = NA
+linguistic_DB_ebsco$ISBN = NA
 
 #take out all the non plos ones from that search
 lexical_DB_PO = subset(lexical_DB_PO, 

@@ -17,7 +17,7 @@ library(reticulate)
 #py_config()
 
 #put in the path to the anaconda installation
-use_python("C:/Users/ari/anaconda3/python.exe", required = TRUE)
+#use_python("C:/Users/ari/anaconda3/python.exe", required = TRUE)
 #use_python("/Users/buchanan/anaconda3/bin/python", required = TRUE)
 
 #see that it's updated

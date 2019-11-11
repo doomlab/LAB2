@@ -1,4 +1,5 @@
 # LAB2
+
 Update to the Linguistic Annotated Bibliography
 
 - Last work through of sources was November 4th, 2019.
@@ -28,7 +29,7 @@ Websites and journals currently used:
 - EBSCO host for PSYCInfo
 - PLoS One
 - Behavior Research Methods
-- Language Resources and Evaluation (Computers in the Humanities)
+- Language Resources and Evaluation (Computers and the Humanities)
 
 Second, run the data creation script:
 
@@ -62,16 +63,16 @@ In this folder, you can view the types of classification that we examined for th
 - `spacy_classification.Rmd` includes a spacy pipeline for classifying our documents, and the resulting probabilities and prediction values for the testing datasets using logistic regression.
 - `spacy_svc_classification.Rmd` is a similar approach using linear SVC with simple text tokenization. 
 - `naivebayes_classification.Rmd` is a Naive Bayes classifier algorithm on the top 500 most common words from the abstracts.
-- 
+- `keras_cnn.Rmd` - a convolutional neural network model using keras and tensorflow to model the abstracts on a more complex level.
 
 ## Shiny App Folder 
 
-- updated files in the shiny app 
+We have previously developed a shiny app avaliable at http://wordnorms.com/lab_table.html for the original LAB database. This folder links to the DOOM lab's shiny app folder, which has the new shiny app for the LAB2.0: https://github.com/doomlab/shiny-server --> `wn_lab2` folder. 
 
 ## Manuscript
 
-- this folder has the static paper
+This folder will contain the static manuscript as part of this project presented at the Society for Computers in Psychology. We expect to submit to Behavior Research Methods by the end of December 2019. 
 
-## Presentation
+## Presentations
 
-here's the scip stuff 
+This folder contains the presentations for the LAB2.0.

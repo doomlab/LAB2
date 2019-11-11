@@ -189,22 +189,25 @@ summary(model)
 model$save
 
 #Save the model
-model %>% save_model_hdf5("model9.h5")
+model %>% save_model_hdf5("model14.h5")
 
-load_model_hdf5("model9.h5")
+load_model_hdf5("model14.h5")
 ```
 
 ## Evaluate on new
 
 ```{r}
-score <- model %>% evaluate(x_new_input, y_new_ouput, batch_size = batch_size)
-score
+data3 <- data.frame(read.csv("../02.data/output_data/test_data_new_no_stem.csv"))
 
-pred <- model %>% predict(x_new_input, y_new_ouput, batch_size = batch_size)
-y_pred = round(pred)
-y_pred
+text = data3$text
+text_seqs <- texts_to_sequences(tokenizer, text)
+x_extend <- text_seqs %>%
+  pad_sequences(maxlen = maxlen)
 
+y_extend <- as.matrix(data3$class)
 
+pred <- model %>% predict(x_extend, y_extend, batch_size = batch_size)
+pred
 ```
 
 
