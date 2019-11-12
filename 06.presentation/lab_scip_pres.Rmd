@@ -1,6 +1,6 @@
 ---
 title: "Automating the Linguistic Annotated Bibliography (LAB)"
-author: "Arielle Cunningham, Erin M. Buchanan, & Nikhil Chate"
+author: "Ari L. Cunningham, Erin M. Buchanan, & Nikhil Chate"
 date: "11/11/2019"
 output: 
   slidy_presentation:
@@ -16,7 +16,7 @@ library(dplyr)
 
 ## The Team
 
-- Arielle Cunningham - Missouri State University
+- Ari L. Cunningham - Missouri State University
 - Erin M. Buchanan - Harrisburg University \@aggieerin
 - Nikhil Chate - Harrisburg University
 - Jonathan Korn - Harrisburg University
