@@ -48,7 +48,7 @@ knitr::include_graphics("publications_year.png")
 ## Automation: Curate the Training Data
 
 - The LAB data was used as a source of "gold standard" examples for articles to include
-- However, the list of articles we excluded for the LAB was not avaliable
+- However, the list of articles we excluded for the LAB was not available
 - To collect examples of non-included and new data, we used the following:
   - Lexical database, linguistic database (as compound phrases)
   - Lexical norms, linguistic norms
@@ -137,8 +137,8 @@ kable(tableprint, align = c("c", "c"),
 ## What appears to be most informative?
 
 - Across all four models we see approximately the same results:
-  - It's easier to predict the larger not include category with 90% accuracy
-  - It's harder to predict the included category with 80% accuracy 
+  - It's easier to predict the larger not include category, with 90% accuracy
+  - It's harder to predict the included category, with 80% accuracy 
 - Top features for non-included articles:
   - computational, printout, introduction, review, volume, statistical, news, biology, medicine, life, tone, science 
 - Top features for included articles:
