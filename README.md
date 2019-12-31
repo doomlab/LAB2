@@ -65,14 +65,17 @@ In this folder, you can view the types of classification that we examined for th
 - `naivebayes_classification.Rmd` is a Naive Bayes classifier algorithm on the top 500 most common words from the abstracts.
 - `keras_cnn.Rmd` - a convolutional neural network model using keras and tensorflow to model the abstracts on a more complex level.
 
-## Shiny App Folder 
+## Shiny App 
 
-We have previously developed a shiny app avaliable at http://wordnorms.com/lab_table.html for the original LAB database. This folder links to the DOOM lab's shiny app folder, which has the new shiny app for the LAB2.0: https://github.com/doomlab/shiny-server --> `wn_lab2` folder. 
+We have previously developed a shiny app avaliable at http://wordnorms.com/lab_table.html for the original LAB database. The original shiny app can be found at: https://github.com/doomlab/shiny-server/tree/master/wn_lab. The entire wordnorms website was updated to a shiny app with new data for the LAB and other projects, which is stored here: https://github.com/doomlab/wordnorms.
 
-## Manuscript
+## The `Manuscript` Folder
 
-This folder will contain the static manuscript as part of this project presented at the Society for Computers in Psychology. We expect to submit to Behavior Research Methods by the end of December 2019. 
+This folder will contain the static manuscript as part of this project presented at the Society for Computers in Psychology. 
 
-## Presentations
+
+## The `Presentation` Folder
 
 This folder contains the presentations for the LAB2.0.
+
+- Cunningham, A., Chate, N. & Buchanan, E.M. (2019, November). Automating the Linguistic Annotated Bibliography (LAB). Spoken presentation for the Annual Meeting of the Society for Computers in Psychology, Montreal, Canada. 
