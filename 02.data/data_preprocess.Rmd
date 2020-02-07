@@ -21,6 +21,7 @@ library(scales)
 library(data.table)
 library(readtext)
 library(taRifx)
+library(textclean)
 ```
 
 ## [1] - Importing Data...
@@ -47,20 +48,30 @@ table(small_data$class)
 ```{r}
 # deal with symbols
 small_data$text <- iconv(small_data$text, "latin1", "ASCII", sub = " ")
+
 # deal with keywords starting with keywords
 small_data$text <- gsub("^Keywords", " ", small_data$text)
+
 # deal with NA values
-small_data$text <- gsub("^NA| NA ", " ", small_data$text)
+small_data$text <- gsub("^NA| NA\\b", " ", small_data$text)
+
 # lower case
 small_data$text <- tolower(small_data$text)
+
+# expand contractions
+small_data$text <- replace_contraction(small_data$text)
+
 # take out stop words
 small_data$text <- removeWords(small_data$text, stopwords(kind = "SMART"))
-# take out dashes in a smart way
-small_data$text <- gsub("-", " ", small_data$text)
+
 # take out punctuation
-small_data$text <- removePunctuation(small_data$text)
+#small_data$text <- removePunctuation(small_data$text)
+small_data$text <- gsub("[[:punct:]]", " ", small_data$text)
+
 # take out numbers
-small_data$text <- removeNumbers(small_data$text)
+#small_data$text <- removeNumbers(small_data$text)
+small_data$text <- gsub("[[:digit:]]+", " ", small_data$text)
+
 # remove all extra white space
 small_data$text <- stripWhitespace(small_data$text)
 
@@ -78,68 +89,39 @@ write.csv(small_data_stem, "output_data/complete_processed_data_stem.csv", row.n
 
 For the purposes of publication and testing/validating the algorithm, we split the data into three subsets:
 
-- Training data: all data from from the LAB including ones we would have found and excluded in our search.
+- Training data: all data from from the LAB including ones we would have found and excluded in our search, updated with new LRE information.
 - Testing data - new publications: all data from 2019 and later that would have been searched for new articles (aka information published after the LAB was completed).
-- Testing data - LRE: all data from LRE pre-2019 that would be included in new versions of the LAB. This journal was found after the publication of the LAB and was used to validate the algorithm.
 
-The second two datasets were hand marked by EMB for yes/no inclusion for this project to determine the accuracy of the predictive model. 
+The new datasets were hand marked by EMB for yes/no inclusion for this project to determine the accuracy of the predictive model. 
 
 ## Not Stemmed
 
 ```{r}
-training_data <- subset(small_data, 
-                        (JOURNAL != "Computers and the Humanities" & 
-                        JOURNAL != "Language Resources and Evaluation" |
-                        is.na(JOURNAL)) &
-                        (YEAR < 2019 | is.na(YEAR)))
+training_data <- subset(small_data, (YEAR < 2019 | is.na(YEAR)))
 
-testing_data_new <- subset(small_data,
-                           YEAR >= 2019)
-
-testing_data_LRE <- subset(small_data,
-                           (JOURNAL == "Computers and the Humanities" | 
-                          JOURNAL == "Language Resources and Evaluation") &
-                          YEAR < 2019)
+testing_data_new <- subset(small_data, YEAR >= 2019)
 
 nrow(small_data) 
-nrow(training_data) #2147
+nrow(training_data) #3057
 nrow(testing_data_new) #210
-nrow(testing_data_LRE) #910
-
-sum(c(nrow(training_data), nrow(testing_data_new), nrow(testing_data_LRE)))
 
 write.csv(training_data, "output_data/training_data_no_stem.csv", row.names = F)
 write.csv(testing_data_new, "output_data/test_data_new_no_stem.csv", row.names = F)
-write.csv(testing_data_LRE, "output_data/test_data_LRE_no_stem.csv", row.names = F)
 ```
 
 ## Stemmed 
 
 ```{r}
-training_data <- subset(small_data_stem, 
-                        (JOURNAL != "Computers and the Humanities" & 
-                        JOURNAL != "Language Resources and Evaluation" |
-                        is.na(JOURNAL)) &
-                        (YEAR < 2019 | is.na(YEAR)))
+training_data <- subset(small_data_stem, (YEAR < 2019 | is.na(YEAR)))
 
-testing_data_new <- subset(small_data_stem,
-                           YEAR >= 2019)
-
-testing_data_LRE <- subset(small_data_stem,
-                           (JOURNAL == "Computers and the Humanities" | 
-                          JOURNAL == "Language Resources and Evaluation") &
-                          YEAR < 2019)
+testing_data_new <- subset(small_data_stem, YEAR >= 2019)
 
 nrow(small_data_stem) 
-nrow(training_data) #2147
+nrow(training_data) #3057
 nrow(testing_data_new) #210
-nrow(testing_data_LRE) #910
-
-sum(c(nrow(training_data), nrow(testing_data_new), nrow(testing_data_LRE)))
 
 write.csv(training_data, "output_data/training_data_stem.csv", row.names = F)
 write.csv(testing_data_new, "output_data/test_data_new_stem.csv", row.names = F)
-write.csv(testing_data_LRE, "output_data/test_data_LRE_stem.csv", row.names = F)
 ```
 
 ## Yes/No
@@ -148,7 +130,5 @@ write.csv(testing_data_LRE, "output_data/test_data_LRE_stem.csv", row.names = F)
 table(training_data$code)
 
 table(testing_data_new$code)
-
-table(testing_data_LRE$code)
 ```
 

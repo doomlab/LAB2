@@ -1,0 +1,226 @@
+---
+title: "Pre-Registration LAB2.0 Machine Learning"
+author: "Erin M. Buchanan"
+date: "2/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+The Linguistic Annotated Bibiolography (LAB; Buchanan, Valentine, & Maxwell, 2019) is a resource for all types of researchers who want to know what stimuli, corpora, and tools are avaliable for use in their studies. The LAB is currently ~800 listings with the real problem of continuing to grow in a manageable way. Therefore, we wish to implement a semi-automated process to help find, select, and enter data into the LAB.
+
+## Previous Work
+
+For the Society for Computation in Pyschology, we presented details about previous work on this idea (see folders 06.presentation and 03.classification). In our previous exploration, we examined several machine learning algorithms with a bag of words input into the model and a neural net model. However, this process seemed somewhat randomly generated, using techniques each researcher felt most comfortable with. This pre-registration is to take a systematic approach to finding the best predictive algorithm for our task.
+
+## Data Processing and Split
+
+You can read about the selection process for articles in our readme file for the GitHub folder (https://github.com/doomlab/LAB2). The data was cleaned by:
+
+  - Removing non-Latin symbols
+  - Removing the word keywords from the keywords section
+  - Lower casing all words for normalization
+  - Expanding contractions
+  - Removing a list of stopwords (the `SMART` list from the `tm` package)
+  - Removing punctuation, numbers, and extra white space
+  - There is also a stemmed dataset, but we will use the full data, as stemming may create unusual words given the context of the text (scientific abstracts)
+  - Additionally, we did not spell check the data, given we expect many words to be found as "misspelled" due to science specific topics, and generally abstracts should be correctly spelled
+
+We split this data into:
+
+  - Training: all data before 2019
+    - We will further split this data into 90-10 split to train and development test our algorithms
+  - Testing: all data after 2019
+    - We will use this data to examine accuracy, precision, and recall as a second test for model selection
+
+In our previous examinations, we originally separated out the LRE data as a separate test. It was found that models needed training on LRE type abstracts to be accurate at predicting LRE articles, and therefore, we combined data into pre and post 2019. The split on 2019 was simply because of when the original LAB was compiled. 
+
+## Next Steps
+
+There are two main components one can change in our process to create a predictive algorithm: 
+
+- The features extracted for input into a machine learning algorithm
+- The machine learning algorithm
+
+Therefore, we will manipulate both of these variables.
+
+### Machine Learning Algorithms
+
+We will use the follow algorithms as popular selections for a classification task:
+
+- Logistic regression with the following setup from Python and `sklearn`:
+
+```{python eval = F}
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+
+lr = LogisticRegression(penalty='l2', solver='lbfgs', multi_class='ovr',
+                        max_iter=10000, C=1, random_state=42)
+```
+
+- Naive Bayes model:
+
+```{python eval = F}
+from sklearn.naive_bayes import MultinomialNB
+
+mnb = MultinomialNB(alpha=1)
+```
+
+- Support Vector Machine:
+
+```{python eval = F}
+from sklearn.svm import LinearSVC
+
+svm = LinearSVC(penalty='l2', C=1, random_state=42)
+```
+
+### Input Feature Matrix
+
+We will use the following input feature matrices as options:
+
+- Simple bag of words frequency counts: a term by document matrix with frequency counts as numeric values
+
+```{python eval = F}
+from sklearn.feature_extraction.text import CountVectorizer
+
+cv = CountVectorizer(binary=False, #not true false, actual counts
+                    min_df=0.0, #min proportion words have to occur to be included
+                    max_df=1.0, #max proportion 
+                    decode_error='replace') #take out bad bytes
+```
+
+- The bag of words method with a Term-Frequency Inverse Document Frequency normalizer applied to it
+
+```{python eval = F}
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+tv = TfidfVectorizer(use_idf=True, min_df=0.0, max_df=1.0)
+```
+
+In these two models, we will manipulate the size of the vocabulary as an input into the matrix. We will calculate the frequency of tokens found in the training text, as shown below.
+
+```{r}
+library(tidytext)
+library(dplyr)
+text_data <- read.csv("../02.data/output_data/complete_processed_data_no_stem.csv", stringsAsFactors = F)
+
+tokens <- text_data %>% 
+  unnest_tokens(word, text) 
+
+counts <- tokens %>% count(word, sort = T)
+nrow(counts)
+counts$percent <- counts$n / nrow(counts) * 100
+
+sum(counts$percent > .05)
+```
+There are approximately 20,000 words in this data. We will start with the top 100 words and increase in units of 100 for matrix size up to 4000 words (which accounts for approximately .05% of word occurrence ~ 10 mentions across all articles).
+
+- A Latent Semantic Analysis space, which uses Singular Vector Decomposition to transform a term by document matrix into a vector space model
+
+```{python eval = F}
+from gensim import corpora
+from gensim.models import LsiModel
+from gensim.models.coherencemodel import CoherenceModel
+
+#create a dictionary of the words
+dictionary = corpora.Dictionary(processed_text)
+
+#create a TDM
+doc_term_matrix = [dictionary.doc2bow(doc) for doc in processed_text]
+
+lsamodel = LsiModel(doc_term_matrix, 
+           num_topics=VARIABLE, 
+           id2word = dictionary)
+```
+
+- A Topics Model, which uses Latent Dirichlet Allocation to transform a term by document matrix into a vector space model
+
+```{python eval = F}
+from gensim.models import LdaModel
+lda_model = LdaModel(corpus = doc_term_matrix, #TDM
+                              id2word = dictionary, #Dictionary
+                              num_topics = VARIABLE,
+                              random_state = 100)
+```
+
+On all of these models, the number of dimensions can be manipulated to input into the algorithm. We will use the same rules as above - varying the number of dimensions starting at 100 and increasing in units of 100 until we reach 4000 dimensions. 
+
+- A Word2Vec model, which is a shallow neural net model. We will use the following function to export the Word2Vec vectors from the model. 
+
+```{python eval = F}
+from gensim.models import Word2Vec
+w2v_model = Word2Vec(tokenized_train, #corpus of tokenized words
+            size=VARIABLE, #number of features
+            window=VARIABLE, #size of moving window
+            min_count=1, #minimum number of times word has to be seen 
+            sg = 0, #cbow model
+            iter=5, workers=5) #iterations and cores
+            
+#create flattening function
+def document_vectorizer(corpus, model, num_features):
+    vocabulary = set(model.wv.index2word)
+    
+    def average_word_vectors(words, model, vocabulary, num_features):
+        feature_vector = np.zeros((num_features,), dtype="float64")
+        nwords = 0.
+        
+        for word in words:
+            if word in vocabulary: 
+                nwords = nwords + 1.
+                feature_vector = np.add(feature_vector, model.wv[word])
+        if nwords:
+            feature_vector = np.divide(feature_vector, nwords)
+
+        return feature_vector
+
+    features = [average_word_vectors(tokenized_sentence, model, vocabulary, num_features)
+                    for tokenized_sentence in corpus]
+    return np.array(features)
+```
+
+- A FastText Model, which is an updated version of Word2Vec, which should improve with more idiosyncratic text
+
+```{python}
+from gensim.models.fasttext import FastText
+
+ft_model = FastText(tokenized_train, 
+                    size=VARIABLE, 
+                    window=VARIABLE,
+                    sg = 0,
+                    min_count=1, 
+                    iter=5, workers=4)
+```
+
+In both of these models, there are several facets to manipulate:
+
+- size: the number of dimensions, starting at 100, increasing by 100, up to 4000
+- window: the size of the moving window, which we will vary from 3 words to 10 words (see http://crr.ugent.be/papers/Mandera_et_al_JML_2016.pdf)
+- CBOW versus Skip-Gram, both model types will be estimated
+
+Other models of language representation were considered (HAL, BEAGLE), but these were not easily programmed and their core conceptual underpinnings are captured in one or more of these other models. 
+
+## Picking a Model
+
+The model with the highest accuracy, recall, and precision for each class (included, not included) will be selected. In the case of models within +/- 1% of these statistics (a tie of models who all present values in the same range), we will use the simplest technique:
+
+- In order simple to complex: logistic regression, naive bayes, support vector machines
+- Order: bag of words, tf-idf, LSA, Topics, Word2Vec, FastText (although this order can be somewhat abritrary for models of the same type, the "older" model was chosen as simpler)
+
+This selection will be calculated across the testing development set, as well as the extension testing set of new articles. 
+
+## A comparison point
+
+One of the authors additionally programmed this model using a deep learning technique: a hybrid recurrent - convolutional neural net model with multiple layers. We will include this model in supplemental materials and examine how it compares to simpler approaches to classification. Because these models include many points of manipulation, we will use the model as-is from the expert, to demonstrate if the added complexity is necessary for prediction. Given our previous exploration, we believe simpler models will perform as well as the deep learning model, however, if it out performs the simpler models, we will note this point in our paper and use this model as our prediction technique. 
+
+## Follow up to classification
+
+Once this model is selected, we will use calculate the probability of inclusion (i.e. predict cases) for the entire dataset and use a ROC analysis to find a "cut-off" score for inclusion. We expect that a 50/50 probability will classify well, however, this analysis may give us a more sensitive score for including articles, rather than the 50/50 split normally employed by algorithms. This score will also allow us to potentially determine a "gray" area range for articles that should be voted on by crowdsourcing or examined more closely (i.e., by a human).
+
+## Updating the model
+
+We will have to manually enter each item into the LAB to complete the total coding scheme. Because of this human intervention, we can weed out incorrect "included" classifications from the model. We will update the final selected model with new data after new articles are entered into the lab and articles are excluded. This update ensures that new trends and article writing styles are captured for future prediction. 
