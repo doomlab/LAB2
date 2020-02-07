@@ -136,6 +136,8 @@ doc_term_matrix = [dictionary.doc2bow(doc) for doc in processed_text]
 lsamodel = LsiModel(doc_term_matrix, 
            num_topics=VARIABLE, 
            id2word = dictionary)
+
+V = gensim.matutils.corpus2dense(lsamodel[doc_term_matrix], len(lsamodel.projection.s)).T / lsamodel.projection.s
 ```
 
 - A Topics Model, which uses Latent Dirichlet Allocation to transform a term by document matrix into a vector space model
@@ -146,6 +148,9 @@ lda_model = LdaModel(corpus = doc_term_matrix, #TDM
                               id2word = dictionary, #Dictionary
                               num_topics = VARIABLE,
                               random_state = 100)
+DT = lda_model[doc_term_matrix]
+DT = gensim.matutils.corpus2csc(DT)
+#DT.T.toarray() if the sparse matrix doesn't compute
 ```
 
 On all of these models, the number of dimensions can be manipulated to input into the algorithm. We will use the same rules as above - varying the number of dimensions starting at 100 and increasing in units of 100 until we reach 4000 dimensions. 
@@ -203,6 +208,14 @@ In both of these models, there are several facets to manipulate:
 - CBOW versus Skip-Gram, both model types will be estimated
 
 Other models of language representation were considered (HAL, BEAGLE), but these were not easily programmed and their core conceptual underpinnings are captured in one or more of these other models. 
+
+## Stopping Rule
+
+With each of the increases of dimensionality, we will stop running models if:
+
+- Minimally, we expect to run 100 to 1000 as our dimensionality with increases up to 4000 except:
+  - Too big to compute
+  - Accuracy, precision, recall do not increase by 1%, which is our model selection rule listed below
 
 ## Picking a Model
 
