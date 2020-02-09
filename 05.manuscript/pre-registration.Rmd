@@ -11,19 +11,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Background
 
-The Linguistic Annotated Bibiolography (LAB; Buchanan, Valentine, & Maxwell, 2019) is a resource for all types of researchers who want to know what stimuli, corpora, and tools are avaliable for use in their studies. The LAB is currently ~800 listings with the real problem of continuing to grow in a manageable way. Therefore, we wish to implement a semi-automated process to help find, select, and enter data into the LAB.
+The Linguistic Annotated Bibiolography (LAB; Buchanan, Valentine, & Maxwell, 2019) is a resource for all types of researchers who want to know what stimuli, corpora, and tools are available for use in their studies. The LAB currently has ~800 listings and the real problem of continuing to grow in a way difficult to manage manually. Therefore, we wish to implement a semi-automated process to help find, select, and enter data into the LAB.
 
 ## Previous Work
 
-For the Society for Computation in Pyschology, we presented details about previous work on this idea (see folders 06.presentation and 03.classification). In our previous exploration, we examined several machine learning algorithms with a bag of words input into the model and a neural net model. However, this process seemed somewhat randomly generated, using techniques each researcher felt most comfortable with. This pre-registration is to take a systematic approach to finding the best predictive algorithm for our task.
+For the Society for Computers in Psychology, we presented details about previous work on this idea (see folders 06.presentation and 03.classification). In our previous exploration, we examined several machine learning algorithms with a bag of words input into the model and a neural net model. However, this process seemed somewhat randomly generated, using techniques each researcher felt most comfortable with. This pre-registration is to take a systematic approach to finding the best predictive algorithm for our task.
 
 ## Data Processing and Split
 
 You can read about the selection process for articles in our readme file for the GitHub folder (https://github.com/doomlab/LAB2). The data was cleaned by:
 
   - Removing non-Latin symbols
-  - Removing the word keywords from the keywords section
-  - Lower casing all words for normalization
+  - Removing the word "keywords" from the keywords section
+  - Lower-casing all words for normalization
   - Expanding contractions
   - Removing a list of stopwords (the `SMART` list from the `tm` package)
   - Removing punctuation, numbers, and extra white space
@@ -37,7 +37,7 @@ We split this data into:
   - Testing: all data after 2019
     - We will use this data to examine accuracy, precision, and recall as a second test for model selection
 
-In our previous examinations, we originally separated out the LRE data as a separate test. It was found that models needed training on LRE type abstracts to be accurate at predicting LRE articles, and therefore, we combined data into pre and post 2019. The split on 2019 was simply because of when the original LAB was compiled. 
+In our previous examinations, we originally separated out the LRE data as a separate test. It was found that models needed training on LRE type abstracts to be accurate at predicting LRE articles, and therefore, we combined data into pre and post 2019. The split on 2019 was chosen simply because of when the original LAB was compiled. 
 
 ## Next Steps
 
@@ -228,11 +228,11 @@ This selection will be calculated across the testing development set, as well as
 
 ## A comparison point
 
-One of the authors additionally programmed this model using a deep learning technique: a hybrid recurrent - convolutional neural net model with multiple layers. We will include this model in supplemental materials and examine how it compares to simpler approaches to classification. Because these models include many points of manipulation, we will use the model as-is from the expert, to demonstrate if the added complexity is necessary for prediction. Given our previous exploration, we believe simpler models will perform as well as the deep learning model, however, if it out performs the simpler models, we will note this point in our paper and use this model as our prediction technique. 
+One of the authors additionally programmed this model using a deep learning technique: a hybrid recurrent - convolutional neural net model with multiple layers. We will include this model in supplemental materials and examine how it compares to simpler approaches to classification. Because these models include many points of manipulation, we will use the model as-is from the expert, to demonstrate if the added complexity is necessary for prediction. Given our previous exploration, we believe simpler models will perform as well as the deep learning model; however, if it outperforms the simpler models, we will note this point in our paper and use this model as our prediction technique. 
 
 ## Follow up to classification
 
-Once this model is selected, we will use calculate the probability of inclusion (i.e. predict cases) for the entire dataset and use a ROC analysis to find a "cut-off" score for inclusion. We expect that a 50/50 probability will classify well, however, this analysis may give us a more sensitive score for including articles, rather than the 50/50 split normally employed by algorithms. This score will also allow us to potentially determine a "gray" area range for articles that should be voted on by crowdsourcing or examined more closely (i.e., by a human).
+Once this model is selected, we will calculate the probability of inclusion (i.e. predict cases) for the entire dataset and use a ROC analysis to find a "cut-off" score for inclusion. We expect that a 50/50 probability will classify well, however, this analysis may give us a more sensitive score for including articles, rather than the 50/50 split normally employed by algorithms. This score will also allow us to potentially determine a "gray" area range for articles that should be voted on by crowdsourcing or examined more closely (i.e., by a human).
 
 ## Updating the model
 
