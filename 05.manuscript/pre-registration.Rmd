@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Background
 
-The Linguistic Annotated Bibiolography (LAB; Buchanan, Valentine, & Maxwell, 2019) is a resource for all types of researchers who want to know what stimuli, corpora, and tools are available for use in their studies. The LAB currently has ~800 listings and the real problem of continuing to grow in a way difficult to manage manually. Therefore, we wish to implement a semi-automated process to help find, select, and enter data into the LAB.
+The Linguistic Annotated Bibliography (LAB; Buchanan, Valentine, & Maxwell, 2019) is a resource for all types of researchers who want to know what stimuli, corpora, and tools are available for use in their studies. The LAB currently has ~800 listings and the real problem of continuing to grow in a way difficult to manage manually. Therefore, we wish to implement a semi-automated process to help find, select, and enter data into the LAB.
 
 ## Previous Work
 
@@ -190,7 +190,7 @@ def document_vectorizer(corpus, model, num_features):
 
 - A FastText Model, which is an updated version of Word2Vec, which should improve with more idiosyncratic text
 
-```{python}
+```{python eval = F}
 from gensim.models.fasttext import FastText
 
 ft_model = FastText(tokenized_train, 
@@ -222,7 +222,7 @@ With each of the increases of dimensionality, we will stop running models if:
 The model with the highest accuracy, recall, and precision for each class (included, not included) will be selected. In the case of models within +/- 1% of these statistics (a tie of models who all present values in the same range), we will use the simplest technique:
 
 - In order simple to complex: logistic regression, naive bayes, support vector machines
-- Order: bag of words, tf-idf, LSA, Topics, Word2Vec, FastText (although this order can be somewhat abritrary for models of the same type, the "older" model was chosen as simpler)
+- Order: bag of words, tf-idf, LSA, Topics, Word2Vec, FastText (although this order can be somewhat arbitrary for models of the same type, the "older" model was chosen as simpler)
 
 This selection will be calculated across the testing development set, as well as the extension testing set of new articles. 
 
@@ -232,7 +232,7 @@ One of the authors additionally programmed this model using a deep learning tech
 
 ## Follow up to classification
 
-Once this model is selected, we will calculate the probability of inclusion (i.e. predict cases) for the entire dataset and use a ROC analysis to find a "cut-off" score for inclusion. We expect that a 50/50 probability will classify well, however, this analysis may give us a more sensitive score for including articles, rather than the 50/50 split normally employed by algorithms. This score will also allow us to potentially determine a "gray" area range for articles that should be voted on by crowdsourcing or examined more closely (i.e., by a human).
+Once this model is selected, we will calculate the probability of inclusion (i.e. predict cases) for the entire dataset and use a ROC analysis to find a "cut-off" score for inclusion. We expect that a 50/50 probability will classify well, however, this analysis may give us a more sensitive score for including articles, rather than the 50/50 split normally employed by algorithms. This score will also allow us to potentially determine a "gray" area range for articles that should be voted on by crowd sourcing or examined more closely (i.e., by a human).
 
 ## Updating the model
 
