@@ -1,0 +1,213 @@
+---
+title: "Logistic Regression Results"
+author: "Erin M. Buchanan"
+date: "2/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Libraries and Data
+
+```{r}
+library(reticulate)
+
+##here::here() should return the folder of the entire Rproject
+master <- read.csv(paste0(here::here(),"/02.data/output_data/training_data_no_stem.csv"), stringsAsFactors = F)
+
+set.seed(439489043)
+sample_rows <- sample(1:nrow(master), 
+                          floor(nrow(master)*.9), 
+                          replace = FALSE)
+
+training <- master[sample_rows, ]
+dev_testing <- master[-sample_rows, ]
+testing <- read.csv(paste0(here::here(),"/02.data/output_data/test_data_new_no_stem.csv"), stringsAsFactors = F)
+
+#sample sizes 
+nrow(training)
+nrow(dev_testing)
+nrow(testing)
+```
+
+## Logistic Regression Analysis
+
+### Python Libraries and Data
+
+```{python}
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+from sklearn.feature_extraction.text import CountVectorizer
+
+training = r.training
+dev_testing = r.dev_testing
+testing = r.testing
+
+training_text = training["text"]
+training_answer = training["class"]
+
+dev_text = dev_testing["text"]
+dev_answer = dev_testing["class"]
+
+testing_text = testing["text"]
+testing_answer = testing["class"]
+```
+
+### Create Blank Log Model
+
+```{python}
+lr = LogisticRegression(penalty='l2', solver='lbfgs', multi_class='ovr',
+                        max_iter=10000, C=1, random_state=42)
+```
+
+### Bag of Words 
+
+There are approximately 20,000 words in this data. We will start with the top 100 words and increase in units of 100 for matrix size up to 4000 words (which accounts for approximately .05% of word occurrence ~ 10 mentions across all articles).
+
+```{python}
+## create a blank dataframe
+columns = ["number_features", "precision0", "recall0", "f1 score0", 
+          "precision1", "recall1", "f1score1", "accuracy"]
+index = np.arange(100, 4001, 100).tolist()
+log_results = pd.DataFrame(index=index, columns=columns)
+log_results = log_results.fillna(0)
+
+##create the loop here 
+#for i in np.arange(100, 4001, 100).tolist()
+i = 100
+
+#create counts
+cv = CountVectorizer(binary=False, #not true false, actual counts
+                    min_df=0.0, #min proportion 
+                    max_df=1.0, #max proportion 
+                    decode_error='replace', #take out bad bytes
+                    max_features=i) #looping over size 
+                 
+#create bag of words on data                   
+cv_training_text = cv.fit_transform(training_text)
+cv_dev_text = cv.transform(dev_text)
+cv_testing_text = cv.transform(testing_text)
+
+#fit LR model
+lr.fit(cv_training_text, training_answer)
+
+#predict
+y_training = lr.predict(cv_training_text)
+y_dev = lr.predict(cv_dev_text)
+y_testing = lr.predict(cv_testing_text)
+
+#classification
+report = classification_report(training_answer, y_training, output_dict=True)
+[list(report["0"].values()), list(report["1"].values()), report["accuracy"]]
+
+log_results.loc[i] = []
+```
+
+
+
+
+
+
+- The bag of words method with a Term-Frequency Inverse Document Frequency normalizer applied to it
+
+```{python eval = F}
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+tv = TfidfVectorizer(use_idf=True, min_df=0.0, max_df=1.0)
+```
+
+
+
+- A Latent Semantic Analysis space, which uses Singular Vector Decomposition to transform a term by document matrix into a vector space model
+
+```{python eval = F}
+from gensim import corpora
+from gensim.models import LsiModel
+from gensim.models.coherencemodel import CoherenceModel
+
+#create a dictionary of the words
+dictionary = corpora.Dictionary(processed_text)
+
+#create a TDM
+doc_term_matrix = [dictionary.doc2bow(doc) for doc in processed_text]
+
+lsamodel = LsiModel(doc_term_matrix, 
+           num_topics=VARIABLE, 
+           id2word = dictionary)
+
+V = gensim.matutils.corpus2dense(lsamodel[doc_term_matrix], len(lsamodel.projection.s)).T / lsamodel.projection.s
+```
+
+- A Topics Model, which uses Latent Dirichlet Allocation to transform a term by document matrix into a vector space model
+
+```{python eval = F}
+from gensim.models import LdaModel
+lda_model = LdaModel(corpus = doc_term_matrix, #TDM
+                              id2word = dictionary, #Dictionary
+                              num_topics = VARIABLE,
+                              random_state = 100)
+DT = lda_model[doc_term_matrix]
+DT = gensim.matutils.corpus2csc(DT)
+#DT.T.toarray() if the sparse matrix doesn't compute
+```
+
+On all of these models, the number of dimensions can be manipulated to input into the algorithm. We will use the same rules as above - varying the number of dimensions starting at 100 and increasing in units of 100 until we reach 4000 dimensions. 
+
+- A Word2Vec model, which is a shallow neural net model. We will use the following function to export the Word2Vec vectors from the model. 
+
+```{python eval = F}
+from gensim.models import Word2Vec
+w2v_model = Word2Vec(tokenized_train, #corpus of tokenized words
+            size=VARIABLE, #number of features
+            window=VARIABLE, #size of moving window
+            min_count=1, #minimum number of times word has to be seen 
+            sg = 0, #cbow model
+            iter=5, workers=5) #iterations and cores
+            
+#create flattening function
+def document_vectorizer(corpus, model, num_features):
+    vocabulary = set(model.wv.index2word)
+    
+    def average_word_vectors(words, model, vocabulary, num_features):
+        feature_vector = np.zeros((num_features,), dtype="float64")
+        nwords = 0.
+        
+        for word in words:
+            if word in vocabulary: 
+                nwords = nwords + 1.
+                feature_vector = np.add(feature_vector, model.wv[word])
+        if nwords:
+            feature_vector = np.divide(feature_vector, nwords)
+
+        return feature_vector
+
+    features = [average_word_vectors(tokenized_sentence, model, vocabulary, num_features)
+                    for tokenized_sentence in corpus]
+    return np.array(features)
+```
+
+- A FastText Model, which is an updated version of Word2Vec, which should improve with more idiosyncratic text
+
+```{python eval = F}
+from gensim.models.fasttext import FastText
+
+ft_model = FastText(tokenized_train, 
+                    size=VARIABLE, 
+                    window=VARIABLE,
+                    sg = 0,
+                    min_count=1, 
+                    iter=5, workers=4)
+```
+
+In both of these models, there are several facets to manipulate:
+
+- size: the number of dimensions, starting at 100, increasing by 100, up to 4000
+- window: the size of the moving window, which we will vary from 3 words to 10 words (see http://crr.ugent.be/papers/Mandera_et_al_JML_2016.pdf)
+- CBOW versus Skip-Gram, both model types will be estimated
+
+Other models of language representation were considered (HAL, BEAGLE), but these were not easily programmed and their core conceptual underpinnings are captured in one or more of these other models. 
