@@ -118,6 +118,7 @@ counts$percent <- counts$n / nrow(counts) * 100
 
 sum(counts$percent > .05)
 ```
+
 There are approximately 20,000 words in this data. We will start with the top 100 words and increase in units of 100 for matrix size up to 4000 words (which accounts for approximately .05% of word occurrence ~ 10 mentions across all articles).
 
 - A Latent Semantic Analysis space, which uses Singular Vector Decomposition to transform a term by document matrix into a vector space model

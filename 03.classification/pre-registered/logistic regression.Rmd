@@ -71,46 +71,73 @@ There are approximately 20,000 words in this data. We will start with the top 10
 
 ```{python}
 ## create a blank dataframe
-columns = ["number_features", "precision0", "recall0", "f1 score0", 
-          "precision1", "recall1", "f1score1", "accuracy"]
+columns = ["precision0", "recall0", "f1 score0"]
+columns2 = ["precision1", "recall1", "f1 score1"]
+log_cv_accuracydev = []
+log_cv_accuracytest = []
+
 index = np.arange(100, 4001, 100).tolist()
-log_results = pd.DataFrame(index=index, columns=columns)
-log_results = log_results.fillna(0)
+log_cv_results_0dev = pd.DataFrame(index=index, columns=columns)
+log_cv_results_0dev = log_cv_results_0dev.fillna(0)
+log_cv_results_0test = pd.DataFrame(index=index, columns=columns)
+log_cv_results_0test = log_cv_results_0test.fillna(0)
+
+log_cv_results_1dev = pd.DataFrame(index=index, columns=columns2)
+log_cv_results_1dev = log_cv_results_1dev.fillna(0)
+log_cv_results_1test = pd.DataFrame(index=index, columns=columns2)
+log_cv_results_1test = log_cv_results_1test.fillna(0)
 
 ##create the loop here 
-#for i in np.arange(100, 4001, 100).tolist()
-i = 100
+for i in np.arange(100, 4001, 100).tolist(): #start loop
 
-#create counts
-cv = CountVectorizer(binary=False, #not true false, actual counts
-                    min_df=0.0, #min proportion 
-                    max_df=1.0, #max proportion 
-                    decode_error='replace', #take out bad bytes
-                    max_features=i) #looping over size 
-                 
-#create bag of words on data                   
-cv_training_text = cv.fit_transform(training_text)
-cv_dev_text = cv.transform(dev_text)
-cv_testing_text = cv.transform(testing_text)
+  #create counts
+  cv = CountVectorizer(binary=False, #not true false, actual counts
+                      min_df=0.0, #min proportion 
+                      max_df=1.0, #max proportion 
+                      decode_error='replace', #take out bad bytes
+                      max_features=i) #looping over size 
+                   
+  #create bag of words on data                   
+  cv_training_text = cv.fit_transform(training_text)
+  cv_dev_text = cv.transform(dev_text)
+  cv_testing_text = cv.transform(testing_text)
+  
+  #fit LR model
+  lr.fit(cv_training_text, training_answer)
+  
+  #predict
+  y_dev = lr.predict(cv_dev_text)
+  y_testing = lr.predict(cv_testing_text)
+  
+  #classification
+  report = classification_report(dev_answer, y_dev, output_dict=True)
+  
+  log_cv_results_0dev.loc[i] = list(report["0"].values())[0:3]
+  log_cv_results_1dev.loc[i] = list(report["1"].values())[0:3]
+  log_cv_accuracydev.append(report["accuracy"])
 
-#fit LR model
-lr.fit(cv_training_text, training_answer)
-
-#predict
-y_training = lr.predict(cv_training_text)
-y_dev = lr.predict(cv_dev_text)
-y_testing = lr.predict(cv_testing_text)
-
-#classification
-report = classification_report(training_answer, y_training, output_dict=True)
-[list(report["0"].values()), list(report["1"].values()), report["accuracy"]]
-
-log_results.loc[i] = []
+  #classification
+  report2 = classification_report(testing_answer, y_testing, output_dict=True)
+  
+  log_cv_results_0test.loc[i] = list(report2["0"].values())[0:3]
+  log_cv_results_1test.loc[i] = list(report2["1"].values())[0:3]
+  log_cv_accuracytest.append(report2["accuracy"])
 ```
 
+```{r}
+log_cv_results <- cbind(py$log_cv_results_0dev, py$log_cv_results_1dev, 
+                        "accuracy_dev" = py$log_cv_accuracydev, 
+                        py$log_cv_results_0test, py$log_cv_results_1test, 
+                        "accuracy_testing" = py$log_cv_accuracytest)
 
-
-
+colnames(log_cv_results) <- c("precision0_dev","recall0_dev","f1_score0_dev",
+                              "precision1_dev","recall1_dev","f1_score1_dev",
+                              "accuracy_dev", "precision0_testing",
+                              "recall0_testing","f1_score0_testing",
+                              "precision1_testing","recall1_testing",
+                              "f1_score1_testing","accuracy_testing")
+write.csv(log_cv_results, "log_cv_results.csv")
+```
 
 
 - The bag of words method with a Term-Frequency Inverse Document Frequency normalizer applied to it
