@@ -43,7 +43,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 from sklearn.feature_extraction.text import CountVectorizer
+from gensim import corpora
+from gensim.models import LsiModel
+from gensim.models.coherencemodel import CoherenceModel
+from sklearn.feature_extraction.text import TfidfVectorizer
+import nltk
+import gensim
+from gensim.models import LdaModel
 
+master = r.master
 training = r.training
 dev_testing = r.dev_testing
 testing = r.testing
@@ -69,7 +77,7 @@ lr = LogisticRegression(penalty='l2', solver='lbfgs', multi_class='ovr',
 
 There are approximately 20,000 words in this data. We will start with the top 100 words and increase in units of 100 for matrix size up to 4000 words (which accounts for approximately .05% of word occurrence ~ 10 mentions across all articles).
 
-```{python}
+```{python eval = F}
 ## create a blank dataframe
 columns = ["precision0", "recall0", "f1 score0"]
 columns2 = ["precision1", "recall1", "f1 score1"]
@@ -124,7 +132,7 @@ for i in np.arange(100, 4001, 100).tolist(): #start loop
   log_cv_accuracytest.append(report2["accuracy"])
 ```
 
-```{r}
+```{r eval = F}
 log_cv_results <- cbind(py$log_cv_results_0dev, py$log_cv_results_1dev, 
                         "accuracy_dev" = py$log_cv_accuracydev, 
                         py$log_cv_results_0test, py$log_cv_results_1test, 
@@ -139,51 +147,246 @@ colnames(log_cv_results) <- c("precision0_dev","recall0_dev","f1_score0_dev",
 write.csv(log_cv_results, "log_cv_results.csv")
 ```
 
+### TF-IDF
 
-- The bag of words method with a Term-Frequency Inverse Document Frequency normalizer applied to it
+The same approach was applied here in TF-IDF. 
 
 ```{python eval = F}
-from sklearn.feature_extraction.text import TfidfVectorizer
+## create a blank dataframe
+columns = ["precision0", "recall0", "f1 score0"]
+columns2 = ["precision1", "recall1", "f1 score1"]
+log_tv_accuracydev = []
+log_tv_accuracytest = []
 
-tv = TfidfVectorizer(use_idf=True, min_df=0.0, max_df=1.0)
+index = np.arange(100, 4001, 100).tolist()
+log_tv_results_0dev = pd.DataFrame(index=index, columns=columns)
+log_tv_results_0dev = log_tv_results_0dev.fillna(0)
+log_tv_results_0test = pd.DataFrame(index=index, columns=columns)
+log_tv_results_0test = log_tv_results_0test.fillna(0)
+
+log_tv_results_1dev = pd.DataFrame(index=index, columns=columns2)
+log_tv_results_1dev = log_tv_results_1dev.fillna(0)
+log_tv_results_1test = pd.DataFrame(index=index, columns=columns2)
+log_tv_results_1test = log_tv_results_1test.fillna(0)
+
+##create the loop here 
+for i in np.arange(100, 4001, 100).tolist(): #start loop
+
+  #create tfidf
+  tv = TfidfVectorizer(use_idf=True, #use tfidf
+                      min_df=0.0, #min prop
+                      max_df=1.0, #max prop
+                      max_features=i) #looping over size 
+                   
+  #create bag of words on data                   
+  tv_training_text = tv.fit_transform(training_text)
+  tv_dev_text = tv.transform(dev_text)
+  tv_testing_text = tv.transform(testing_text)
+  
+  #fit LR model
+  lr.fit(tv_training_text, training_answer)
+  
+  #predict
+  y_dev = lr.predict(tv_dev_text)
+  y_testing = lr.predict(tv_testing_text)
+  
+  #classification
+  report = classification_report(dev_answer, y_dev, output_dict=True)
+  
+  log_tv_results_0dev.loc[i] = list(report["0"].values())[0:3]
+  log_tv_results_1dev.loc[i] = list(report["1"].values())[0:3]
+  log_tv_accuracydev.append(report["accuracy"])
+
+  #classification
+  report2 = classification_report(testing_answer, y_testing, output_dict=True)
+  
+  log_tv_results_0test.loc[i] = list(report2["0"].values())[0:3]
+  log_tv_results_1test.loc[i] = list(report2["1"].values())[0:3]
+  log_tv_accuracytest.append(report2["accuracy"])
 ```
 
+```{r eval = F}
+log_tv_results <- cbind(py$log_tv_results_0dev, py$log_tv_results_1dev, 
+                        "accuracy_dev" = py$log_tv_accuracydev, 
+                        py$log_tv_results_0test, py$log_tv_results_1test, 
+                        "accuracy_testing" = py$log_tv_accuracytest)
 
+colnames(log_tv_results) <- c("precision0_dev","recall0_dev","f1_score0_dev",
+                              "precision1_dev","recall1_dev","f1_score1_dev",
+                              "accuracy_dev", "precision0_testing",
+                              "recall0_testing","f1_score0_testing",
+                              "precision1_testing","recall1_testing",
+                              "f1_score1_testing","accuracy_testing")
+write.csv(log_tv_results, "log_tv_results.csv")
+```
 
-- A Latent Semantic Analysis space, which uses Singular Vector Decomposition to transform a term by document matrix into a vector space model
+### Latent Semantic Analysis
+
+Here, we will create dimensions of 100 up to 4000 to create a the same dimensionality we saw with previous models. 
+
+```{python}
+#order the data so we can subset back in the right order 
+ordered_data = training_text.append(dev_text)
+ordered_data = ordered_data.append(testing_text)
+
+#create dictionary of entire wordset, must be tokenized
+dictionary = corpora.Dictionary(ordered_data.apply(nltk.word_tokenize))
+
+#create a TDM for overall data
+doc_term_matrix = [dictionary.doc2bow(doc) for doc in ordered_data.apply(nltk.word_tokenize)]
+```
 
 ```{python eval = F}
-from gensim import corpora
-from gensim.models import LsiModel
-from gensim.models.coherencemodel import CoherenceModel
+## create a blank dataframe
+columns = ["precision0", "recall0", "f1 score0"]
+columns2 = ["precision1", "recall1", "f1 score1"]
+log_lsa_accuracydev = []
+log_lsa_accuracytest = []
 
-#create a dictionary of the words
-dictionary = corpora.Dictionary(processed_text)
+index = np.arange(100, 4001, 100).tolist()
+log_lsa_results_0dev = pd.DataFrame(index=index, columns=columns)
+log_lsa_results_0dev = log_lsa_results_0dev.fillna(0)
+log_lsa_results_0test = pd.DataFrame(index=index, columns=columns)
+log_lsa_results_0test = log_lsa_results_0test.fillna(0)
 
-#create a TDM
-doc_term_matrix = [dictionary.doc2bow(doc) for doc in processed_text]
+log_lsa_results_1dev = pd.DataFrame(index=index, columns=columns2)
+log_lsa_results_1dev = log_lsa_results_1dev.fillna(0)
+log_lsa_results_1test = pd.DataFrame(index=index, columns=columns2)
+log_lsa_results_1test = log_lsa_results_1test.fillna(0)
 
-lsamodel = LsiModel(doc_term_matrix, 
-           num_topics=VARIABLE, 
+##create the loop here 
+for i in np.arange(100, 4001, 100).tolist(): #start loop
+
+  #create LSA model of all data
+  lsa_model = LsiModel(doc_term_matrix, 
+           num_topics=i, 
            id2word = dictionary)
 
-V = gensim.matutils.corpus2dense(lsamodel[doc_term_matrix], len(lsamodel.projection.s)).T / lsamodel.projection.s
+  #grab V matrix
+  V = gensim.matutils.corpus2dense(lsa_model[doc_term_matrix], len(lsa_model.projection.s)).T / lsa_model.projection.s
+  
+  training_V = V[0:len(training_text)]
+  dev_V = V[len(training_text):len(training_text)+len(dev_text)]
+  testing_V = V[len(training_text)+len(dev_text):]
+
+  #fit LR model
+  lr.fit(training_V, training_answer)
+  
+  #predict
+  y_dev = lr.predict(dev_V)
+  y_testing = lr.predict(testing_V)
+  
+  #classification
+  report = classification_report(dev_answer, y_dev, output_dict=True)
+  
+  log_lsa_results_0dev.loc[i] = list(report["0"].values())[0:3]
+  log_lsa_results_1dev.loc[i] = list(report["1"].values())[0:3]
+  log_lsa_accuracydev.append(report["accuracy"])
+
+  #classification
+  report2 = classification_report(testing_answer, y_testing, output_dict=True)
+  
+  log_lsa_results_0test.loc[i] = list(report2["0"].values())[0:3]
+  log_lsa_results_1test.loc[i] = list(report2["1"].values())[0:3]
+  log_lsa_accuracytest.append(report2["accuracy"])
 ```
 
-- A Topics Model, which uses Latent Dirichlet Allocation to transform a term by document matrix into a vector space model
+```{r eval = F}
+log_lsa_results <- cbind(py$log_lsa_results_0dev, py$log_lsa_results_1dev, 
+                        "accuracy_dev" = py$log_lsa_accuracydev, 
+                        py$log_lsa_results_0test, py$log_lsa_results_1test, 
+                        "accuracy_testing" = py$log_lsa_accuracytest)
 
-```{python eval = F}
-from gensim.models import LdaModel
-lda_model = LdaModel(corpus = doc_term_matrix, #TDM
+colnames(log_lsa_results) <- c("precision0_dev","recall0_dev","f1_score0_dev",
+                              "precision1_dev","recall1_dev","f1_score1_dev",
+                              "accuracy_dev", "precision0_testing",
+                              "recall0_testing","f1_score0_testing",
+                              "precision1_testing","recall1_testing",
+                              "f1_score1_testing","accuracy_testing")
+write.csv(log_lsa_results, "log_lsa_results.csv")
+```
+
+Note: the largest shape was 3245. 
+
+### Topics Model
+
+Topics model has the same set up using entire dataframe to predict the category, so using the dictionary and doc_term_matrix from LSA. 
+
+```{python}
+## create a blank dataframe
+columns = ["precision0", "recall0", "f1 score0"]
+columns2 = ["precision1", "recall1", "f1 score1"]
+log_topics_accuracydev = []
+log_topics_accuracytest = []
+
+index = np.arange(100, 4001, 100).tolist()
+log_topics_results_0dev = pd.DataFrame(index=index, columns=columns)
+log_topics_results_0dev = log_topics_results_0dev.fillna(0)
+log_topics_results_0test = pd.DataFrame(index=index, columns=columns)
+log_topics_results_0test = log_topics_results_0test.fillna(0)
+
+log_topics_results_1dev = pd.DataFrame(index=index, columns=columns2)
+log_topics_results_1dev = log_topics_results_1dev.fillna(0)
+log_topics_results_1test = pd.DataFrame(index=index, columns=columns2)
+log_topics_results_1test = log_topics_results_1test.fillna(0)
+
+##create the loop here 
+for i in np.arange(100, 4001, 100).tolist(): #start loop
+
+  #create LDA model of all data
+  lda_model = LdaModel(corpus = doc_term_matrix, #TDM
                               id2word = dictionary, #Dictionary
-                              num_topics = VARIABLE,
+                              num_topics = i,
                               random_state = 100)
-DT = lda_model[doc_term_matrix]
-DT = gensim.matutils.corpus2csc(DT)
-#DT.T.toarray() if the sparse matrix doesn't compute
+                              
+  #get the document-topics matrix                              
+  DT = lda_model[doc_term_matrix]
+  DT = gensim.matutils.corpus2csc(DT)
+  DT = DT.T.toarray() 
+  
+  training_DT = DT[0:len(training_text)]
+  dev_DT = DT[len(training_text):len(training_text)+len(dev_text)]
+  testing_DT = DT[len(training_text)+len(dev_text):]
+
+  #fit LR model
+  lr.fit(training_DT, training_answer)
+  
+  #predict
+  y_dev = lr.predict(dev_DT)
+  y_testing = lr.predict(testing_DT)
+  
+  #classification
+  report = classification_report(dev_answer, y_dev, output_dict=True)
+  
+  log_topics_results_0dev.loc[i] = list(report["0"].values())[0:3]
+  log_topics_results_1dev.loc[i] = list(report["1"].values())[0:3]
+  log_topics_accuracydev.append(report["accuracy"])
+
+  #classification
+  report2 = classification_report(testing_answer, y_testing, output_dict=True)
+  
+  log_topics_results_0test.loc[i] = list(report2["0"].values())[0:3]
+  log_topics_results_1test.loc[i] = list(report2["1"].values())[0:3]
+  log_topics_accuracytest.append(report2["accuracy"])
 ```
 
-On all of these models, the number of dimensions can be manipulated to input into the algorithm. We will use the same rules as above - varying the number of dimensions starting at 100 and increasing in units of 100 until we reach 4000 dimensions. 
+```{r eval = F}
+log_topics_results <- cbind(py$log_topics_results_0dev, py$log_topics_results_1dev, 
+                        "accuracy_dev" = py$log_topics_accuracydev, 
+                        py$log_topics_results_0test, py$log_topics_results_1test, 
+                        "accuracy_testing" = py$log_topics_accuracytest)
+
+colnames(log_topics_results) <- c("precision0_dev","recall0_dev","f1_score0_dev",
+                              "precision1_dev","recall1_dev","f1_score1_dev",
+                              "accuracy_dev", "precision0_testing",
+                              "recall0_testing","f1_score0_testing",
+                              "precision1_testing","recall1_testing",
+                              "f1_score1_testing","accuracy_testing")
+write.csv(log_topics_results, "log_topics_results.csv")
+```
+
+
+### Word2Vec
 
 - A Word2Vec model, which is a shallow neural net model. We will use the following function to export the Word2Vec vectors from the model. 
 
@@ -218,6 +421,8 @@ def document_vectorizer(corpus, model, num_features):
     return np.array(features)
 ```
 
+### FastText
+
 - A FastText Model, which is an updated version of Word2Vec, which should improve with more idiosyncratic text
 
 ```{python eval = F}
@@ -236,5 +441,3 @@ In both of these models, there are several facets to manipulate:
 - size: the number of dimensions, starting at 100, increasing by 100, up to 4000
 - window: the size of the moving window, which we will vary from 3 words to 10 words (see http://crr.ugent.be/papers/Mandera_et_al_JML_2016.pdf)
 - CBOW versus Skip-Gram, both model types will be estimated
-
-Other models of language representation were considered (HAL, BEAGLE), but these were not easily programmed and their core conceptual underpinnings are captured in one or more of these other models. 
