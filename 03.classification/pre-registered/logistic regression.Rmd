@@ -946,3 +946,5 @@ ggplot(long_all, aes(X, value, color = variable2)) +
   theme_classic()
 ```
 
+All the graphs
+
