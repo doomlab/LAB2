@@ -13,8 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(reticulate)
-library(reshape)
-library(ggplot2, quietly = T)
 
 ##here::here() should return the folder of the entire Rproject
 master <- read.csv(paste0(here::here(),"/02.data/output_data/training_data_no_stem.csv"), stringsAsFactors = F)
@@ -611,7 +609,7 @@ write.csv(log_wv_skip_results, "log_wv_skip_results_end.csv")
 
 #### CBOW
 
-```{python}
+```{python eval = F}
 ## create a blank dataframe
 columns = ["precision0", "recall0", "f1 score0"]
 columns2 = ["precision1", "recall1", "f1 score1"]
@@ -631,7 +629,7 @@ log_ft_cbow_results_1test = log_ft_cbow_results_1test.fillna(0)
 
 loop_round = 0
 
-for i in r.idlist[0:100]: #start loop
+for i in r.idlist: #start loop
 
   p, q = r.idlist[loop_round].split("_")
   p = int(p)
@@ -677,6 +675,13 @@ for i in r.idlist[0:100]: #start loop
   log_ft_cbow_results_0test.loc[i] = list(report2["0"].values())[0:3]
   log_ft_cbow_results_1test.loc[i] = list(report2["1"].values())[0:3]
   log_ft_cbow_accuracytest.append(report2["accuracy"])
+  
+  log_ft_cbow_results_0dev.to_csv("log_ft_cbow_results_0dev.csv")
+  log_ft_cbow_results_1dev.to_csv("log_ft_cbow_results_1dev.csv")
+  pd.Series(log_ft_cbow_accuracydev).to_csv("log_ft_cbow_accuracydev.csv", header = False)
+  log_ft_cbow_results_0test.to_csv("log_ft_cbow_results_0test.csv")
+  log_ft_cbow_results_1test.to_csv("log_ft_cbow_results_1test.csv")
+  pd.Series(log_ft_cbow_accuracytest).to_csv("log_ft_cbow_accuracytest.csv", header = False)
 ```
 
 ```{r eval = F}
@@ -716,7 +721,7 @@ log_ft_skip_results_1test = log_ft_skip_results_1test.fillna(0)
 
 loop_round = 0
 
-for i in r.idlist[200: ]: #start loop
+for i in r.idlist: #start loop
 
   p, q = r.idlist[loop_round].split("_")
   p = int(p)
@@ -727,7 +732,7 @@ for i in r.idlist[200: ]: #start loop
   ft_model = FastText(ordered_data.apply(nltk.word_tokenize), #corpus of tokenized words
                     size=p, #number of features
                     window=q, #size of moving window
-                    sg = 1, #skipgram
+                    sg = 0,
                     min_count=1, 
                     iter=5, workers=4)
   
@@ -736,7 +741,7 @@ for i in r.idlist[200: ]: #start loop
                       corpus=ordered_data.apply(nltk.word_tokenize), 
                       model=ft_model,
                       num_features=p)
-
+  
   #separate out into different pieces
   training_features = all_features[0:len(training_text)]
   dev_features = all_features[len(training_text):len(training_text)+len(dev_text)]
@@ -762,6 +767,13 @@ for i in r.idlist[200: ]: #start loop
   log_ft_skip_results_0test.loc[i] = list(report2["0"].values())[0:3]
   log_ft_skip_results_1test.loc[i] = list(report2["1"].values())[0:3]
   log_ft_skip_accuracytest.append(report2["accuracy"])
+  
+  log_ft_skip_results_0dev.to_csv("log_ft_skip_results_0dev.csv")
+  log_ft_skip_results_1dev.to_csv("log_ft_skip_results_1dev.csv")
+  pd.Series(log_ft_skip_accuracydev).to_csv("log_ft_skip_accuracydev.csv", header = False)
+  log_ft_skip_results_0test.to_csv("log_ft_skip_results_0test.csv")
+  log_ft_skip_results_1test.to_csv("log_ft_skip_results_1test.csv")
+  pd.Series(log_ft_skip_accuracytest).to_csv("log_ft_skip_accuracytest.csv", header = False)
 ```
 
 ```{r eval = F}
@@ -780,169 +792,3 @@ colnames(log_ft_skip_results) <- c("precision0_dev","recall0_dev","f1_score0_dev
                               "f1_score1_testing","accuracy_testing")
 write.csv(log_ft_skip_results, "log_ft_skip_results_end.csv")
 ```
-
-### Visualize
-
-#### Bag of Words
-
-```{r}
-log_cv <- read.csv("log_cv_results.csv")
-
-long_cv <- melt(log_cv, id = "X")
-long_cv <- subset(long_cv,
-                  grepl("f1_score1|accuracy", variable))
-
-ggplot(long_cv, aes(X, value, color = variable)) + 
-  geom_path() + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-```
-
-#### TF-IDF
-
-```{r}
-log_tv <- read.csv("log_tv_results.csv")
-
-long_tv <- melt(log_tv, id = "X")
-long_tv <- subset(long_tv,
-                  grepl("f1_score1|accuracy", variable))
-
-ggplot(long_tv, aes(X, value, color = variable)) + 
-  geom_path() + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-```
-
-#### LSA
-
-```{r}
-log_lsa <- read.csv("log_lsa_results.csv")
-
-long_lsa <- melt(log_lsa, id = "X")
-long_lsa <- subset(long_lsa,
-                  grepl("f1_score1|accuracy", variable))
-
-ggplot(long_lsa, aes(X, value, color = variable)) + 
-  geom_path() + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-```
-
-#### Topics
-
-```{r}
-log_topics <- read.csv("log_topics_results.csv")
-
-long_topics <- melt(log_topics, id = "X")
-long_topics <- subset(long_topics,
-                  grepl("f1_score1|accuracy", variable))
-
-ggplot(long_topics, aes(X, value, color = variable)) + 
-  geom_path() + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-```
-
-#### Word2Vec CBOW
-
-```{r}
-log_wv_cbow <- read.csv("log_wv_cbow_results.csv")
-
-long_wv_cbow <- melt(log_wv_cbow, id = "X")
-long_wv_cbow <- subset(long_wv_cbow,
-                  grepl("f1_score1|accuracy", variable))
-long_wv_cbow$X <- as.character(long_wv_cbow$X)
-
-long_wv_cbow$features <- unlist(lapply(long_wv_cbow$X, function(x){strsplit(x, "_")[[1]][1]}))
-
-long_wv_cbow$window <- unlist(lapply(long_wv_cbow$X, function(x){strsplit(x, "_")[[1]][2]}))
-
-long_wv_cbow$features <- as.numeric(long_wv_cbow$features)
-long_wv_cbow$window <- as.numeric(long_wv_cbow$window)
-
-ggplot(long_wv_cbow, aes(features, value, color = variable)) + 
-  geom_path() + 
-  facet_wrap(~window) + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-```
-
-#### Word2Vec SG
-
-```{r}
-log_wv_skip <- read.csv("log_wv_skip_results.csv")
-
-long_wv_skip <- melt(log_wv_skip, id = "X")
-long_wv_skip <- subset(long_wv_skip,
-                  grepl("f1_score1|accuracy", variable))
-long_wv_skip$X <- as.character(long_wv_skip$X)
-
-long_wv_skip$features <- unlist(lapply(long_wv_skip$X, function(x){strsplit(x, "_")[[1]][1]}))
-
-long_wv_skip$window <- unlist(lapply(long_wv_skip$X, function(x){strsplit(x, "_")[[1]][2]}))
-
-long_wv_skip$features <- as.numeric(long_wv_skip$features)
-long_wv_skip$window <- as.numeric(long_wv_skip$window)
-
-ggplot(long_wv_skip, aes(features, value, color = variable)) + 
-  geom_path() + 
-  facet_wrap(~window) + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-```
-
-#### Overall
-
-```{r}
-long_wv_cbow$X <- long_wv_cbow$features
-long_wv_cbow$variable <- paste(long_wv_cbow$variable, long_wv_cbow$window, "wv_cbow", sep = "_")
-long_wv_cbow <- long_wv_cbow[ , -c(4,5)]
-
-long_wv_skip$X <- long_wv_skip$features
-long_wv_skip$variable <- paste(long_wv_skip$variable, long_wv_skip$window, "wv_skip", sep = "_")
-long_wv_skip <- long_wv_skip[ , -c(4,5)]
-
-long_cv$variable <- paste(long_cv$variable, "cv", sep = "_")
-long_tv$variable <- paste(long_tv$variable, "tv", sep = "_")
-long_lsa$variable <- paste(long_lsa$variable, "lsa", sep = "_")
-long_topics$variable <- paste(long_topics$variable, "topics", sep = "_")
-
-long_all <- rbind(long_cv, long_tv, long_lsa, long_topics, long_wv_cbow, long_wv_skip)
-
-long_all$facet <- long_all$variable
-long_all$facet <- gsub("f1_score1_dev.+", "f1_dev", long_all$facet)
-long_all$facet <- gsub("f1_score1_test.+", "f1_test", long_all$facet)
-long_all$facet <- gsub("accuracy_dev.+", "accuracy_dev", long_all$facet)
-long_all$facet <- gsub("accuracy_test.+", "accuracy_test", long_all$facet)
-
-long_all$variable2 <- long_all$variable
-long_all$variable2 <- gsub(".+cv", "cv", long_all$variable2)
-long_all$variable2 <- gsub(".+tv", "tv", long_all$variable2)
-long_all$variable2 <- gsub(".+lsa", "lsa", long_all$variable2)
-long_all$variable2 <- gsub(".+topics", "topics", long_all$variable2)
-long_all$variable2 <- gsub(".+wv_cbow", "wv_cbow", long_all$variable2)
-long_all$variable2 <- gsub(".+wv_skip", "wv_skip", long_all$variable2)
-
-
-ggplot(long_all, aes(X, value, color = variable2)) + 
-  geom_path() + 
-  facet_wrap(~facet) + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-
-ggplot(long_all, aes(X, value, color = variable2)) + 
-  geom_path() + 
-  coord_cartesian(ylim = c(.75, 1)) +
-  facet_wrap(~facet) + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
-```
-
