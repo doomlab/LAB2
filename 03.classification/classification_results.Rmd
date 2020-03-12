@@ -37,6 +37,14 @@ all_data$eighty <- apply(all_data[ , 3:16], 1, function(x){ sum(x >= .80) })
 
 ## ROC Analysis
 
+svm._predict_proba_lr(tv_dev_text) ##only want the second column (column 1)
+
+when we get it wrong how wrong are we getting it for each group 
+when we get it right ... etc. 
+
+
+
+
 
 
 
