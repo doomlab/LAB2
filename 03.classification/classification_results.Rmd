@@ -32,6 +32,11 @@ all_data <- bind_rows(all_files, .id = "column_label")
 
 ```{r}
 all_data$eighty <- apply(all_data[ , 3:16], 1, function(x){ sum(x >= .80) })
+#pre-registered//svm_tv_results.csv	1500
 ```
+
+## ROC Analysis
+
+
 
 

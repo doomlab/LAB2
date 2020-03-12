@@ -938,13 +938,5 @@ ggplot(long_all, aes(X, value, color = variable2)) +
   xlab("Number of Features") + 
   ylab("Accuracy/F1 Score") + 
   theme_classic()
-
-ggplot(long_all, aes(X, value, color = variable2)) + 
-  geom_path() + 
-  coord_cartesian(ylim = c(.75, 1)) +
-  facet_wrap(~facet) + 
-  xlab("Number of Features") + 
-  ylab("Accuracy/F1 Score") + 
-  theme_classic()
 ```
 
