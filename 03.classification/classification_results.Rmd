@@ -1,0 +1,37 @@
+---
+title: "Classification Results"
+author: "Erin M. Buchanan"
+date: "3/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Open the Files
+
+```{r}
+file_names <- list.files(path = "pre-registered/",
+                         pattern = "*.csv",
+                         full.names = TRUE)
+all_files <- lapply(file_names, read.csv, stringsAsFactors = F)
+names(all_files) <- file_names
+
+#merge together fast text
+library(dplyr)
+
+for (i in 1:length(all_files)){
+  all_files[[i]]$X <- as.character(all_files[[i]]$X)
+}
+
+all_data <- bind_rows(all_files, .id = "column_label")
+```
+
+## Pick the Best
+
+```{r}
+all_data$eighty <- apply(all_data[ , 3:16], 1, function(x){ sum(x >= .80) })
+```
+
+
