@@ -1,5 +1,5 @@
 ---
-title             : "The title"
+title             : "Here's a new title"
 shorttitle        : "Title"
 
 author: 
