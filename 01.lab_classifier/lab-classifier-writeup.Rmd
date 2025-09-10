@@ -1,0 +1,338 @@
+---
+title: "General Write Up LAB2.0 Machine Learning"
+author: "Erin M. Buchanan"
+date: "Last Knitted: `r Sys.Date()`"
+output: html_document
+css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+The Linguistic Annotated Bibliography (LAB; Buchanan, Valentine, & Maxwell, 2019) is a resource for all types of researchers who want to know what stimuli, corpora, and tools are available for use in their studies. The LAB currently has ~800 listings and the real problem of continuing to grow in a way difficult to manage manually. Therefore, we wish to implement a semi-automated process to help find, select, and enter data into the LAB.
+
+## Previous Work
+
+For the Society for Computers in Psychology, we presented details about previous work on this idea (see folders `06.presentation`). In our previous exploration, we examined several machine learning algorithms with a bag of words input into the model and a neural net model. However, this process seemed somewhat randomly generated, using techniques each researcher felt most comfortable with. This pre-registration is to take a systematic approach to finding the best predictive algorithm for our task.
+
+:::infobox
+All deviations from the pre-registration are marked in special boxes. This document was cleaned up so you didn't have to read a bunch of different files - and these changes are highlighted to ensure they are clear.
+:::
+
+## Data Creation, Processing, and Split
+
+### The `01.sources` Folder
+
+First, we created a list of sources from the previous LAB dataset. To do this, we started by including the previously created LAB information in the `input_data` folder: 
+
+- `lab_table.csv`: The 2019 version of the LAB table.
+- `mendeley.bib`: A bibtex file that includes all the LAB citations. 
+
+These sources were used as the "gold" standard of what should be included within the LAB database. However, to train a machine learning algorithm, you need examples of what should not be included. We then recreated our original searches from the 2019 LAB to build this training data.   
+
+To do these searches, we used "" to keep like terms together to avoid articles that only used `norms` or `lexical` when appropriate. 
+
+- `lexical_DB_*.csv/bib`: The search term "lexical database" on source websites.
+- `linguistic_DB_*.csv/bib`: The search term "linguistic database" on source websites. 
+- `lexical_norms_*.csv/bib`: The search term "lexical norms" on source websites.
+- `linguistic_norms_*.csv/bib`: The search term "linguistic norms" on source websites. 
+- `corpus_*.csv/bib`: The search term "corpus" only on journal websites.
+- `norms_*.csv/bib`: The search term "norms" only on journal websites.
+
+Websites and journals used:
+
+- EBSCO host for PSYCInfo
+- PLoS One
+- Behavior Research Methods
+- Language Resources and Evaluation (Computers and the Humanities)
+
+Within the `01.sources` folder, you will find a markdown file that combines the data found from these searches `data_creation.Rmd`. Within the file, the following steps are taken (with outputs stored in the `output_data` folder):
+
+1) All data is imported and merged together to create a large file that includes the old LAB and new search results. 
+2) De-duplication via code and output of suggested titles to exclude as duplicates - the code outputs potential duplicates into `flagged_titles.csv` and then those are are duplicates are added to `exclude_titles.csv`. 
+
+- `flagged_titles.csv`: A file created by the script for you to check to help determine duplicate titles not caught by the data cleaning
+- `exclude_titles.csv`: A file you update to exclude those titles that are truly duplicates
+
+3) Missing abstracts and keywords were searched via `rvest` package to add to the database when they could be found. All data was then remerged together. 
+
+### The `02.data` folder
+
+The data folder contains a pre-processing script (`data_preprocess.Rmd`) that cleans the text of punctuation, stop words, symbols, and stems. For the purposes of publication and testing/validating the algorithm, we split the data into two subsets:
+
+- Training: all data before 2019
+  - We will further split this data into 90-10 split to train and development test our algorithms
+- Testing: all data after 2019
+  - We will use this data to examine accuracy, precision, and recall as a second test for model selection
+  
+In our previous examinations for the conference presentation, we originally separated out the LRE data as a separate test. It was found that models needed training on LRE type abstracts to be accurate at predicting LRE articles, and therefore, we combined data into pre and post 2019. The split on 2019 was chosen simply because of when the original LAB was compiled. 
+
+In the `input_data` folder: 
+
+- `completed_clean_data.csv`: The data as processed from the sources folder. Note that the classification column was arbitrary for all old data. 
+- `completed_clean_data_EMB_code.csv`: The data including the proper classification for each article in the `code` column. 
+
+Within the processing file, we took the following steps: 
+
+1) Import the hand coded data, and restrict to information we will use to code the data: `c("KEYWORDS", "TITLE", "ABSTRACT", "JOURNAL", "YEAR", "code")`. 
+2) Keywords, titles, and abstracts are pasted together to create text information for classification purposes. 
+3) We then:
+  - Removed symbols/character issues
+  - Took out "KEYWORDS" or NA values
+  - Lower cased the text
+  - Expanded contractions
+  - Took out stopwords 
+  - Removed punctuation (the `SMART` list from the `tm` package)
+  - Took out numbers
+  - Removed extra white space
+  - Stemmed the text
+  - Additionally, we did not spell check the data, given we expect many words to be found as "misspelled" due to science specific topics, and generally abstracts should be correctly spelled
+
+In the `output_data` folder, there are `stem` and `no_stem` versions of each file indicating if they have been stemmed. The test and training data distinctions are described above. Additionally, the `complete` data is all articles included together.
+
+## Next Steps
+
+There are two main components one can change in our process to create a predictive algorithm: 
+
+- The features extracted for input into a machine learning algorithm
+- The machine learning algorithm
+
+Therefore, we manipulated both of these variables.
+
+### Machine Learning Algorithms `03.classification` folder 
+
+We used the follow algorithms as popular selections for a classification task - all of these files can be found in the `pre-registered` subfolder. 
+
+- Logistic regression with the following setup from Python and `sklearn`:
+
+```{python eval = F}
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+
+lr = LogisticRegression(penalty='l2', solver='lbfgs', multi_class='ovr',
+                        max_iter=10000, C=1, random_state=42)
+```
+
+The `logistic regression.Rmd` file includes the code for this analysis. All output files start with `log` and outputs include accuracy, precision, recall, and F1 scores for each category on training (labeled dev) and testing datasets. 
+
+- Naive Bayes model:
+
+```{python eval = F}
+from sklearn.naive_bayes import MultinomialNB
+
+mnb = MultinomialNB(alpha=1)
+```
+
+The `naive bayes.Rmd` file includes the code for this analysis. All output files start with `nb` and outputs include accuracy, precision, recall, and F1 scores for each category on training (labeled dev) and testing datasets. 
+
+- Support Vector Machine:
+
+```{python eval = F}
+from sklearn.svm import LinearSVC
+
+svm = LinearSVC(penalty='l2', C=1, random_state=42)
+```
+
+The `SVM.Rmd` file includes the code for this analysis. All output files start with `svm` and outputs include accuracy, precision, recall, and F1 scores for each category on training (labeled dev) and testing datasets. 
+
+### Input Feature Matrix
+
+We will use the following input feature matrices as options:
+
+- Simple bag of words frequency counts: a term by document matrix with frequency counts as numeric values
+
+```{python eval = F}
+from sklearn.feature_extraction.text import CountVectorizer
+
+cv = CountVectorizer(binary=False, #not true false, actual counts
+                    min_df=0.0, #min proportion words have to occur to be included
+                    max_df=1.0, #max proportion 
+                    decode_error='replace') #take out bad bytes
+```
+
+- The bag of words method with a Term-Frequency Inverse Document Frequency normalizer applied to it
+
+```{python eval = F}
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+tv = TfidfVectorizer(use_idf=True, min_df=0.0, max_df=1.0)
+```
+
+In these two models, we will manipulate the size of the vocabulary as an input into the matrix. We will calculate the frequency of tokens found in the training text, as shown below.
+
+```{r}
+library(tidytext)
+library(dplyr)
+text_data <- read.csv("02.data/output_data/complete_processed_data_no_stem.csv", stringsAsFactors = F)
+
+tokens <- text_data %>% 
+  unnest_tokens(word, text) 
+
+counts <- tokens %>% count(word, sort = T)
+nrow(counts)
+counts$percent <- counts$n / nrow(counts) * 100
+
+sum(counts$percent > .05)
+```
+
+There are approximately 20,000 words in this data. We will start with the top 100 words and increase in units of 100 for matrix size up to 4000 words (which accounts for approximately .05% of word occurrence ~ 10 mentions across all articles).
+
+- A Latent Semantic Analysis space, which uses Singular Vector Decomposition to transform a term by document matrix into a vector space model
+
+```{python eval = F}
+from gensim import corpora
+from gensim.models import LsiModel
+from gensim.models.coherencemodel import CoherenceModel
+
+#create a dictionary of the words
+dictionary = corpora.Dictionary(processed_text)
+
+#create a TDM
+doc_term_matrix = [dictionary.doc2bow(doc) for doc in processed_text]
+
+lsamodel = LsiModel(doc_term_matrix, 
+           num_topics=VARIABLE, 
+           id2word = dictionary)
+
+V = gensim.matutils.corpus2dense(lsamodel[doc_term_matrix], len(lsamodel.projection.s)).T / lsamodel.projection.s
+```
+
+- A Topics Model, which uses Latent Dirichlet Allocation to transform a term by document matrix into a vector space model
+
+```{python eval = F}
+from gensim.models import LdaModel
+lda_model = LdaModel(corpus = doc_term_matrix, #TDM
+                              id2word = dictionary, #Dictionary
+                              num_topics = VARIABLE,
+                              random_state = 100)
+DT = lda_model[doc_term_matrix]
+DT = gensim.matutils.corpus2csc(DT)
+#DT.T.toarray() if the sparse matrix doesn't compute
+```
+
+On all of these models, the number of dimensions can be manipulated to input into the algorithm. We will use the same rules as above - varying the number of dimensions starting at 100 and increasing in units of 100 until we reach 4000 dimensions. 
+
+- A Word2Vec model, which is a shallow neural net model. We will use the following function to export the Word2Vec vectors from the model. 
+
+```{python eval = F}
+from gensim.models import Word2Vec
+w2v_model = Word2Vec(tokenized_train, #corpus of tokenized words
+            size=VARIABLE, #number of features
+            window=VARIABLE, #size of moving window
+            min_count=1, #minimum number of times word has to be seen 
+            sg = 0, #cbow model
+            iter=5, workers=5) #iterations and cores
+            
+#create flattening function
+def document_vectorizer(corpus, model, num_features):
+    vocabulary = set(model.wv.index2word)
+    
+    def average_word_vectors(words, model, vocabulary, num_features):
+        feature_vector = np.zeros((num_features,), dtype="float64")
+        nwords = 0.
+        
+        for word in words:
+            if word in vocabulary: 
+                nwords = nwords + 1.
+                feature_vector = np.add(feature_vector, model.wv[word])
+        if nwords:
+            feature_vector = np.divide(feature_vector, nwords)
+
+        return feature_vector
+
+    features = [average_word_vectors(tokenized_sentence, model, vocabulary, num_features)
+                    for tokenized_sentence in corpus]
+    return np.array(features)
+```
+
+- A FastText Model, which is an updated version of Word2Vec, which should improve with more idiosyncratic text
+
+```{python eval = F}
+from gensim.models.fasttext import FastText
+
+ft_model = FastText(tokenized_train, 
+                    size=VARIABLE, 
+                    window=VARIABLE,
+                    sg = 0,
+                    min_count=1, 
+                    iter=5, workers=4)
+```
+
+In both of these models, there are several facets to manipulate:
+
+- size: the number of dimensions, starting at 100, increasing by 100, up to 4000
+- window: the size of the moving window, which we will vary from 3 words to 10 words (see http://crr.ugent.be/papers/Mandera_et_al_JML_2016.pdf)
+- CBOW versus Skip-Gram, both model types will be estimated
+
+Other models of language representation were considered (HAL, BEAGLE), but these were not easily programmed and their core conceptual underpinnings are captured in one or more of these other models. 
+
+Output of the feature extraction manipulations are found within the individual `Rmd` files for coding and then separated by `.csv` results files. 
+
+### `exploratory` Folder
+
+We also tested a few exploratory models:
+
+- `spacy_classification.Rmd` includes a spacy pipeline for classifying our documents, and the resulting probabilities and prediction values for the testing datasets using logistic regression.
+- `spacy_svc_classification.Rmd` is a similar approach using linear SVC with simple text tokenization. 
+- `naivebayes_classification.Rmd` is a Naive Bayes classifier algorithm on the top 500 most common words from the abstracts.
+- `keras_cnn.Rmd` - a convolutional neural network model using keras and tensorflow to model the abstracts on a more complex level.
+
+These models did not add predictability to the final model (especially at the expense of complexity - that is, more complex models should be justified by added prediction). Therefore, they are included for transparency but not discussed further. 
+## Stopping Rule
+
+With each of the increases of dimensionality, we will stop running models if:
+
+- Minimally, we expect to run 100 to 1000 as our dimensionality with increases up to 4000 except:
+  - Too big to compute
+  - Accuracy, precision, recall do not increase by 1%, which is our model selection rule listed below
+  
+:::infobox
+Deviation: we just ran all the models and then examined the results. 
+:::
+
+## Picking a Model
+
+The model with the highest accuracy, recall, and precision for each class (included, not included) will be selected. In the case of models within +/- 1% of these statistics (a tie of models who all present values in the same range), we will use the simplest technique:
+
+- In order simple to complex: logistic regression, naive bayes, support vector machines
+- Order: bag of words, tf-idf, LSA, Topics, Word2Vec, FastText (although this order can be somewhat arbitrary for models of the same type, the "older" model was chosen as simpler)
+
+This selection was calculated across the testing development set, as well as the extension testing set of new articles. 
+
+Two models showed *all* statistics over 80% which were both support vector machine models with tf-idf feature extraction at 1500 and 1600 of the top most frequent words. These are only marginally different, so we selected the 1500 model as our best predictor. 
+
+:::infobox
+Deviation: this part wasn't super clear when we went to actually select a model. Therefore, we calculated the number of statistics over 80% (accuracy, precision, recall across include and not include categories), and then sorted them by the most values over 80%. Two models had all 14 possible statistics over 80%. They were incredibly similar, so we did pick the simpler one in the sense that it included less of the top most frequent words.
+:::
+
+## A comparison point
+
+One of the authors additionally programmed this model using a deep learning technique: a hybrid recurrent - convolutional neural net model with multiple layers. We will include this model in supplemental materials and examine how it compares to simpler approaches to classification. Because these models include many points of manipulation, we will use the model as-is from the expert, to demonstrate if the added complexity is necessary for prediction. Given our previous exploration, we believe simpler models will perform as well as the deep learning model; however, if it outperforms the simpler models, we will note this point in our paper and use this model as our prediction technique. 
+
+For comparison, the CNN model accuracy for the testing dataset was `.9038`, which is approximately the same as this model (`0.9095238`). 
+
+:::infobox
+Sort of deviation: for simplicity, we include the models online, but will only mention them superficially in the manuscript. 
+:::
+
+## Follow up to classification
+
+Once this model is selected, we will calculate the probability of inclusion (i.e. predict cases) for the entire dataset and use a ROC analysis to find a "cut-off" score for inclusion. We expect that a 50/50 probability will classify well, however, this analysis may give us a more sensitive score for including articles, rather than the 50/50 split normally employed by algorithms. This score will also allow us to potentially determine a "gray" area range for articles that should be voted on by crowd sourcing or examined more closely (i.e., by a human).
+
+We examined the output from the ROC analysis and determined that the best cut-off (SVM score = .01) is approximately the same value that the algorithm uses automatically (SVM score = .00). The classification reports indicate that they did not realistically improve classification. 
+
+:::infobox
+Sort of deviation: we did not use a "gray-area" as we expect to publish this workflow online showing both the included and not included datasets for others to help curate (as well as the human in the loop review when updating data).
+:::
+
+## Updating the model
+
+We will have to manually enter each item into the LAB to complete the total coding scheme. Because of this human intervention, we can weed out incorrect "included" classifications from the model. We will update the final selected model with new data after new articles are entered into the lab and articles are excluded. This update ensures that new trends and article writing styles are captured for future prediction. 
+
+:::infobox
+Sort of deviation: we are writing a workflow that will allow us to use "small amount of human in the loop" to update the model. We present this workflow in another folder of the repository. We hope the website will be useful for individuals, and while articles will be scanned, users should report any errors they find to improve the quality of the programmatically coded dataset.
+:::

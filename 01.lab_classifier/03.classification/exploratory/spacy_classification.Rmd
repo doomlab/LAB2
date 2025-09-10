@@ -1,0 +1,430 @@
+---
+title: "Classification Using Spacy"
+author: "Ari Cunningham"
+date: "10/15/2019"
+output: html_document
+---
+
+## Set up the system to run Python in R
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#library
+library(reticulate)
+
+#examine where your pythons are
+#py_config()
+
+#put in the path to the anaconda installation
+#use_python("C:/Users/ari/anaconda3/python.exe", required = TRUE)
+#use_python("/Users/buchanan/anaconda3/bin/python", required = TRUE)
+
+#see that it's updated
+py_config()
+```
+
+## Import all the packages 
+
+```{python load}
+import pandas as pd
+
+# scikitlearn
+from sklearn.feature_extraction.text import CountVectorizer,TfidfVectorizer
+from sklearn.base import TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+
+# NLP
+import spacy
+import string
+from spacy.lang.en import English
+from spacy.lang.en.stop_words import STOP_WORDS
+nlp = spacy.load('en')
+
+```
+
+## Import the Training/Testing Data 
+
+```{python load_data}
+# -*- coding: utf-8 -*-
+
+# Get pre-processed data
+data = pd.read_csv('../02.data/output_data/training_data_no_stem.csv')
+data.head()
+```
+
+## Create a spacy pipeline 
+
+```{python spacy_model_load}
+#### LOAD SPACY MODEL ####
+
+# Create our list of punctuation marks
+punctuations = string.punctuation
+
+# Create our list of stopwords
+stop_words = STOP_WORDS
+
+# Load English tokenizer, tagger, parser, NER and word vectors
+parser = English()
+
+# Create our tokenizer function
+def spacy_tokenizer(sentence):
+    # Creating our token object, which is used to create documents with linguistic annotations.
+    mytokens = parser(sentence)
+
+    # Lemmatizing each token and converting each token into lowercase
+    mytokens = [ word.lemma_.lower().strip() if word.lemma_ != "-PRON-" else word.lower_ for word in mytokens ]
+
+    # Removing stop words
+    mytokens = [ word for word in mytokens if word not in stop_words and word not in punctuations ]
+
+    # return preprocessed list of tokens
+    return mytokens
+```
+
+## Create spacy transformers
+
+```{python transformer}
+#### TRANSFORMER ####
+
+# Custom transformer using spaCy
+class predictors(TransformerMixin):
+    def transform(self, X, **transform_params):
+        # Cleaning Text
+        return [clean_text(text) for text in X]
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def get_params(self, deep=True):
+        return {}
+
+# Basic function to clean the text
+def clean_text(text):
+    # Removing spaces and converting text into lowercase
+    return str(text).strip().lower()
+
+bow_vector = CountVectorizer(tokenizer = spacy_tokenizer, ngram_range=(1,1))
+tfidf_vector = TfidfVectorizer(tokenizer = spacy_tokenizer)
+```
+
+## Create test-train data
+
+```{python pipeline_finish}
+
+#### SPLIT DATA ####
+
+x = data['text'] # the features we want to analyze
+ylabels = data['class'] # the labels, or answers, we want to test against
+
+X_train, X_test, y_train, y_test = train_test_split(x, ylabels, test_size=0.3)
+```
+
+## Run the classifier
+
+```{python model}
+#### CREATE MODEL ####
+
+# Logistic Regression Classifier
+classifier = LogisticRegression()
+
+# Create pipeline using Bag of Words
+pipe = Pipeline([("cleaner", predictors()),
+                 ('vectorizer', bow_vector),
+                 ('classifier', classifier)])
+
+# model generation
+pipe.fit(X_train,y_train)
+```
+
+## How well did that work? 
+
+```{python predicting_test}
+#### PREDICTING WITH TEST ####
+
+# Predicting with a test dataset
+predicted = pipe.predict(X_test)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(y_test, predicted))
+print("Logistic Regression Precision:",metrics.precision_score(y_test, predicted))
+print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted))
+```
+
+##loop over this 100 times 
+
+```{python logreg_loop}
+def predict_with_pipe(X, YLABELS):
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, YLABELS, test_size=0.3)
+    
+    # model generation
+    pipe.fit(X_train,y_train)
+    
+    predicted = pipe.predict(X_test)
+
+    # Model Accuracy
+    acc = metrics.accuracy_score(y_test, predicted)
+    prec = metrics.precision_score(y_test, predicted)
+    rec = metrics.recall_score(y_test, predicted)
+    
+    accuracy_predict.append(acc)
+    precision_predict.append(prec)
+    recall_predict.append(rec)
+    
+    return
+
+accuracy_predict = []
+precision_predict = []
+recall_predict = []
+
+for i in range(100):
+    predict_with_pipe(x, ylabels)
+    
+
+metrics_df = pd.DataFrame(list(zip(accuracy_predict, precision_predict, recall_predict)), 
+                          columns =['Accuracy', 'Precision', 'Recall'])
+
+metrics_df.head()
+
+print(metrics_df.mean(axis=0))
+
+```
+
+## Predicting New 2019 Data
+
+```{python predicting_new_data_no_labels}
+#### PREDICT DATA ####
+#import new data
+new_data = pd.read_csv("../02.data/output_data/test_data_new_no_stem.csv")
+new_data.columns
+
+#take the data out of pandas to a list 
+new_text = new_data['text'].tolist()
+new_class = new_data['class'].tolist()
+
+#predict new data
+predictions = pipe.predict(new_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_class, predictions))
+print("Logistic Regression Precision:",metrics.precision_score(new_class, predictions))
+print("Logistic Regression Recall:",metrics.recall_score(new_class, predictions))
+
+#add it to the dataframe
+new_data['prediction'] = predictions
+
+probabilities = pipe.predict_proba(new_text)
+ 
+#want the probability of the 1, which is how the 0-1 gets scored
+#new_data['class']
+probabilities_list = [item[1] for item in probabilities] 
+
+#print(probabilities_list[:10])
+
+new_data['probability'] = probabilities_list
+
+#new_data.to_csv(r'spacy_predicted_new.csv')
+```
+
+## Predicting New LRE Data
+
+```{python predicting_new_data_no_labels}
+#### PREDICT DATA ####
+#import new data
+new_data2 = pd.read_csv("../02.data/output_data/test_data_LRE_no_stem.csv")
+new_data2.columns
+
+#take the data out of pandas to a list 
+new_text2 = new_data2['text'].tolist()
+new_class2 = new_data2['class'].tolist()
+
+#predict new data
+predictions2 = pipe.predict(new_text2)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_class2, predictions2))
+print("Logistic Regression Precision:",metrics.precision_score(new_class2, predictions2))
+print("Logistic Regression Recall:",metrics.recall_score(new_class2, predictions2))
+
+#add it to the dataframe
+new_data2['prediction'] = predictions2
+
+probabilities2 = pipe.predict_proba(new_text2)
+ 
+#want the probability of the 1, which is how the 0-1 gets scored
+#new_data['class']
+probabilities_list2 = [item[1] for item in probabilities2] 
+
+#print(probabilities_list[:10])
+
+new_data2['probability'] = probabilities_list2
+
+#new_data2.to_csv(r'spacy_predicted_LRE.csv')
+```
+
+## What if we did the whole dataset together?
+
+### Create test-train data
+
+```{python data_all}
+data_full = pd.read_csv('../02.data/output_data/complete_processed_data_no_stem.csv')
+
+#### SPLIT DATA ####
+
+X = data_full['text'] # the features we want to analyze
+ylabels = data_full['class'] # the labels, or answers, we want to test against
+
+X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3)
+```
+
+### Run the classifier
+
+```{python model2}
+#### CREATE MODEL ####
+
+# Logistic Regression Classifier
+classifier = LogisticRegression()
+
+# Create pipeline using Bag of Words
+pipe2 = Pipeline([("cleaner", predictors()),
+                 ('vectorizer', bow_vector),
+                 ('classifier', classifier)])
+
+# model generation
+pipe2.fit(X_train,y_train)
+```
+
+### How well did that work? 
+
+```{python predicting_test}
+#### PREDICTING WITH TEST ####
+
+# Predicting with a test dataset
+predicted_full = pipe2.predict(X_test)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(y_test, predicted_full))
+print("Logistic Regression Precision:",metrics.precision_score(y_test, predicted_full))
+print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted_full))
+```
+
+- If we toss everything in at once, is the prediction still bad for those smaller datasets?
+
+```{python probabilities_part2}
+#predict data
+original_lab_text = data['text'].tolist()
+original_lab_answer = data['class'].tolist()
+
+original_lab_predict = pipe2.predict(original_lab_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(original_lab_answer, original_lab_predict))
+print("Logistic Regression Precision:",metrics.precision_score(original_lab_answer, original_lab_predict))
+print("Logistic Regression Recall:",metrics.recall_score(original_lab_answer, original_lab_predict))
+
+#predict new_data
+new_2019_text = new_data['text'].tolist()
+new_2019_answer = new_data['class'].tolist()
+
+new_2019_predict = pipe2.predict(new_2019_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_2019_answer, new_2019_predict))
+print("Logistic Regression Precision:",metrics.precision_score(new_2019_answer, new_2019_predict))
+print("Logistic Regression Recall:",metrics.recall_score(new_2019_answer, new_2019_predict))
+
+#predict new_data2
+new_LRE_text = new_data2['text'].tolist()
+new_LRE_answer = new_data2['class'].tolist()
+
+new_LRE_predict = pipe2.predict(new_LRE_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_LRE_answer, new_LRE_predict))
+print("Logistic Regression Precision:",metrics.precision_score(new_LRE_answer, new_LRE_predict))
+print("Logistic Regression Recall:",metrics.recall_score(new_LRE_answer, new_LRE_predict))
+```
+
+## Final Model Suggestion
+
+##confusion matrix
+##look at a histogram of the probabilities (by class)
+##try changing out bow for tfidf
+
+- Train and test with the LAB + new LRE data.
+- Extend to the new 2019 data. 
+
+```{python final_model}
+#data is LAB, new_data2 is new data LRE
+X_data = pd.concat([data, new_data2])
+X = X_data['text']
+ylabels = X_data['class'] 
+
+X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3)
+
+# Create pipeline using Bag of Words
+pipe_final = Pipeline([("cleaner", predictors()),
+                 ('vectorizer', bow_vector),
+                 ('classifier', classifier)])
+
+# model generation
+pipe_final.fit(X_train,y_train)
+
+# Predicting with a test dataset
+predicted_final = pipe_final.predict(X_test)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(y_test, predicted_final))
+print("Logistic Regression Precision:",metrics.precision_score(y_test, predicted_final))
+print("Logistic Regression Recall:",metrics.recall_score(y_test, predicted_final))
+```
+
+### Extend to 2019 data
+
+```{python predict_2019}
+#take the data out of pandas to a list 
+new_text = new_data['text'].tolist()
+new_class = new_data['class'].tolist()
+
+#predict new data
+predictions = pipe_final.predict(new_text)
+
+# Model Accuracy
+print("Logistic Regression Accuracy:",metrics.accuracy_score(new_class, predictions))
+print("Logistic Regression Precision:",metrics.precision_score(new_class, predictions))
+print("Logistic Regression Recall:",metrics.recall_score(new_class, predictions))
+
+#add it to the dataframe
+new_data['prediction'] = predictions
+
+probabilities = pipe_final.predict_proba(new_text)
+ 
+#want the probability of the 1, which is how the 0-1 gets scored
+#new_data['class']
+probabilities_list = [item[1] for item in probabilities] 
+
+#print(probabilities_list[:10])
+
+new_data['probability'] = probabilities_list
+
+new_data.to_csv(r'spacy_predicted_new.csv')
+```
+
+## check out this function in erin's spacy model
+
+def printNMostInformative(vectorizer, clf, N):
+    feature_names = vectorizer.get_feature_names()
+    coefs_with_fns = sorted(zip(clf.coef_[0], feature_names))
+    topClass1 = coefs_with_fns[:N]
+    topClass2 = coefs_with_fns[:-(N + 1):-1]
+    print("Class 1 best: ")
+    for feat in topClass1:
+        print(feat)
+    print("Class 2 best: ")
+    for feat in topClass2:
+        print(feat)
+

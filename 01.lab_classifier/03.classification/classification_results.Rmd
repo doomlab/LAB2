@@ -1,0 +1,163 @@
+---
+title: "Classification Results"
+author: "Erin M. Buchanan"
+date: "3/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r}
+library(dplyr)
+library(flextable)
+```
+
+## Open the Files
+
+```{r}
+file_names <- list.files(path = "pre-registered/",
+                         pattern = "*.csv",
+                         full.names = TRUE)
+all_files <- lapply(file_names, read.csv, stringsAsFactors = F)
+names(all_files) <- file_names
+
+#merge together fast text
+library(dplyr)
+
+for (i in 1:length(all_files)){
+  all_files[[i]]$X <- as.character(all_files[[i]]$X)
+}
+
+all_data <- bind_rows(all_files, .id = "column_label")
+```
+
+## Pick the Best
+
+This section prints out the models with the most metrics over 80% (accuracy, precision, recall across include and not include categories), and then sorted them by the most values over 80%. 
+
+Two models showed *all* statistics over 80% which were both support vector machine models with tf-idf feature extraction at 1500 and 1600 of the top most frequent words. These are only marginally different, so we selected the 1500 model as our best predictor. 
+
+For comparison, the CNN model accuracy for the testing dataset was `.9038`, which is approximately the same as this model (`0.9095238`). 
+
+```{r}
+all_data$eighty <- apply(all_data[ , 3:16], 1, function(x){ sum(x >= .80) })
+#pre-registered//svm_tv_results.csv	1500
+
+flextable(all_data %>% 
+            filter(eighty >= 13) %>% 
+            arrange(desc(eighty)))
+```
+
+## ROC Analysis
+
+### R Libraries and Data
+
+```{r}
+library(reticulate)
+master <- read.csv("../02.data/output_data/training_data_no_stem.csv", stringsAsFactors = F)
+
+set.seed(439489043)
+sample_rows <- sample(1:nrow(master), 
+                          floor(nrow(master)*.9), 
+                          replace = FALSE)
+
+training <- master[sample_rows, ]
+dev_testing <- master[-sample_rows, ]
+testing <- read.csv("../02.data/output_data/test_data_new_no_stem.csv", stringsAsFactors = F)
+
+#sample sizes 
+nrow(training)
+nrow(dev_testing)
+nrow(testing)
+```
+
+### SVM Analysis
+
+#### Python Libraries and Data
+
+```{python}
+import pandas as pd
+import numpy as np
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+from sklearn.metrics import roc_curve, roc_auc_score
+
+master = r.master
+training = r.training
+dev_testing = r.dev_testing
+testing = r.testing
+
+training_text = training["text"]
+training_answer = training["class"]
+
+dev_text = dev_testing["text"]
+dev_answer = dev_testing["class"]
+
+testing_text = testing["text"]
+testing_answer = testing["class"]
+```
+
+```{python}
+#create tfidf
+tv = TfidfVectorizer(use_idf=True, #use tfidf
+                    min_df=0.0, #min prop
+                    max_df=1.0, #max prop
+                    max_features=1500) #final model
+                 
+#create bag of words on data                   
+tv_training_text = tv.fit_transform(training_text)
+tv_dev_text = tv.transform(dev_text)
+tv_testing_text = tv.transform(testing_text)
+
+#build SVM model
+svm = LinearSVC(penalty='l2', C=1, random_state=42)
+
+#fit SVM model
+svm.fit(tv_training_text, training_answer)
+
+# predict dev 10 percent from original data 
+y_dev = svm.predict(tv_dev_text)
+
+# predict separate testing dataset from 2019 on
+y_testing = svm.predict(tv_testing_text)
+
+# classification report dev
+print(classification_report(dev_answer, y_dev))
+
+# classification report testing
+print(classification_report(testing_answer, y_testing))
+```
+
+```{python}
+# Get raw decision scores (distance to hyperplane; higher = more likely positive)
+dev_scores  = svm.decision_function(tv_dev_text)
+test_scores = svm.decision_function(tv_testing_text)
+
+# ROC & AUC
+fpr, tpr, thr = roc_curve(dev_answer, dev_scores, pos_label=1)
+auc = roc_auc_score(dev_answer, dev_scores)
+print(f"AUC (dev): {auc:.3f}")
+```
+
+```{python}
+J = tpr - fpr
+j_ix = np.argmax(J)
+best_thr = thr[j_ix]   # threshold in *score* space (0.0 is the default SVM boundary)
+print(f"Best threshold by Youden's J: {best_thr:.4f} (TPR={tpr[j_ix]:.3f}, FPR={fpr[j_ix]:.3f})")
+
+# Evaluate with this threshold
+dev_pred_opt  = (dev_scores  >= best_thr).astype(int)
+test_pred_opt = (test_scores >= best_thr).astype(int)
+
+print("DEV @ best_thr")
+print(classification_report(dev_answer, dev_pred_opt, digits=3))
+
+print("TEST @ best_thr")
+print(classification_report(testing_answer, test_pred_opt, digits=3))
+```
