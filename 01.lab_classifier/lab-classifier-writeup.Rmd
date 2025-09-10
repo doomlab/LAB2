@@ -88,7 +88,7 @@ Within the processing file, we took the following steps:
   - Removed punctuation (the `SMART` list from the `tm` package)
   - Took out numbers
   - Removed extra white space
-  - Stemmed the text
+  - Stemmed the text (did not use this version)
   - Additionally, we did not spell check the data, given we expect many words to be found as "misspelled" due to science specific topics, and generally abstracts should be correctly spelled
 
 In the `output_data` folder, there are `stem` and `no_stem` versions of each file indicating if they have been stemmed. The test and training data distinctions are described above. Additionally, the `complete` data is all articles included together.
