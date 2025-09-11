@@ -1,0 +1,43 @@
+---
+title: "LAB Processing Workflow"
+author: "Erin M. Buchanan"
+date: "Last Knitted: `r Sys.Date()`"
+output: html_document
+---
+
+## Objective
+
+To compile a comprehensive set of academic references related to lexical and linguistic databases and norms, forming the basis of the Linguistic Annotated Bibliography (LAB).
+
+## 1. Get New Data
+
+Using OpenAlex, we will find new articles from the previous search point that meet the following criteria:
+
+- Search terms used: "lexical database", "lexical norms", "linguistic database", "linguistic norms"
+- Year: only searched for dates from last update
+- Types: articles, datasets, preprints, supplementary materials, report, book chapters 
+- All suggested journals: PLoS One, Behavior Research Methods, Language Resources and Evaluation are included in this output, so we do not need to search them separately.
+
+We then use several sources (CrossRef, PubMed, Semantic Scholar, etc.) to find any missing abstracts if available. The data is then written out for clean up.
+
+## 2. De-duplicate and Clean Data
+
+First, we de-duplicate the `new_data_to_classify.csv` dataset by using the `both_lab_table.csv`, so articles already processed are ignored. Next, we clean up the data for prediction purposes including the following steps:
+
+- Paste together keywords, title, and abstract.
+- Lowercase
+- Convert to ASCII
+- Remove any "keywords" or NA values
+- Expand contractions
+- Remove punctuation
+- Remove stopwords
+- Remove extra white space
+
+This data is then written out for classification from our previously trained model. 
+
+## 3. Predict New Cases
+
+
+
+
+
