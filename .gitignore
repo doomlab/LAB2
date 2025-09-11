@@ -38,3 +38,4 @@ vignettes/*.pdf
 rsconnect/
 ari_classification/.spyproject/workspace.ini
 .DS_Store
+/02.lab_workflow/04.download_pdfs/pdfs
